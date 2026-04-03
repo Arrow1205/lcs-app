@@ -1,14 +1,38 @@
 "use client";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function Home() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [toast, setToast] = useState(false);
+
+  useEffect(() => {
+    // Si quelqu'un scanne le QR d'un acheteur, il arrive avec ?buyer=ID
+    if (searchParams.get("buyer")) {
+      setToast(true);
+      // On nettoie l'URL pour que ça fasse plus propre
+      router.replace("/");
+      setTimeout(() => setToast(false), 5000);
+    }
+  }, [searchParams, router]);
 
   return (
     <div className="animate-fade-in" style={{
       display: "flex", flexDirection: "column", alignItems: "center",
       justifyContent: "center", minHeight: "100dvh", padding: "40px 24px", gap: 40,
+      position: "relative"
     }}>
+      {toast && (
+        <div className="animate-slide-up" style={{
+          position: "absolute", top: 40, padding: "12px 20px", borderRadius: 12,
+          background: "rgba(29,158,117,0.1)", color: "var(--success)", border: "1px solid var(--success)",
+          fontSize: 14, fontWeight: 600, textAlign: "center"
+        }}>
+          Rejoignez la chasse aux points ! Créez votre compte acheteur 👇
+        </div>
+      )}
+
       {/* Logo / Title */}
       <div style={{ textAlign: "center" }}>
         <div style={{
