@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap");
+
+:root {
+  --bg: #ffffff;
+  --bg-card: #f4f4f8;
+  --text: #07033A;
+  --text-muted: #6b6b8a;
+  --accent: #F96927;
+  --accent-hover: #e05a1f;
+  --border: rgba(7, 3, 58, 0.1);
+  --success: #1D9E75;
+}
+
+.dark {
+  --bg: #07033A;
+  --bg-card: #0D0860;
+  --text: #ffffff;
+  --text-muted: #a0a0c0;
+  --accent: #F96927;
+  --accent-hover: #FF8A50;
+  --border: rgba(255, 255, 255, 0.12);
+  --success: #2ED89A;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "DM Sans", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  margin: 0;
+  transition: background 0.3s, color 0.3s;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Scanner overlay */
+#qr-reader {
+  border: none !important;
+  border-radius: 16px;
+  overflow: hidden;
+}
+#qr-reader video {
+  border-radius: 16px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+@keyframes pointsFloat {
+  0% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-40px); }
+}
+
+.animate-fade-in { animation: fadeIn 0.4s ease; }
+.animate-slide-up { animation: slideUp 0.4s ease; }
+.animate-pulse-soft { animation: pulse 2s ease-in-out infinite; }
+.animate-points-float { animation: pointsFloat 1.5s ease forwards; }
