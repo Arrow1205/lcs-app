@@ -48,3 +48,15 @@ export default function VendeurPage() {
     </div>
   );
 }
+
+// --- SHARED STYLES ---
+const containerStyle = { display: "flex", flexDirection: "column", gap: 15, padding: 40, justifyContent: "center", minHeight: "80vh" };
+const inputStyle = { padding: 15, borderRadius: 10, border: "1px solid #ddd", fontSize: 16 };
+const btnPrimary = { padding: 15, borderRadius: 10, border: "none", background: "#000", color: "#fff", fontWeight: "bold", cursor: "pointer" };
+const btnSecondary = { padding: 10, borderRadius: 10, border: "1px solid #ddd", background: "none", cursor: "pointer" };
+const btnLink = { background: "none", border: "none", textDecoration: "underline", cursor: "pointer", color: "#666" };
+const tabsContainer = { display: "flex", gap: 10, marginBottom: 20 };
+const tabBtn = { flex: 1, padding: 10, border: "1px solid #ddd", borderRadius: 10, cursor: "pointer" };
+const tableStyle = { width: "100%", borderCollapse: "collapse", marginTop: 10 };
+const overlayStyle = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 };
+const popupStyle = { background: "#fff", padding: 20, borderRadius: 20, width: "100%", maxWidth: 400 };
