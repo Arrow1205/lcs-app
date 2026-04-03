@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function Home() {
+// Le composant qui utilise les hooks de navigation
+function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [toast, setToast] = useState(false);
@@ -27,7 +28,7 @@ export default function Home() {
         <div className="animate-slide-up" style={{
           position: "absolute", top: 40, padding: "12px 20px", borderRadius: 12,
           background: "rgba(29,158,117,0.1)", color: "var(--success)", border: "1px solid var(--success)",
-          fontSize: 14, fontWeight: 600, textAlign: "center"
+          fontSize: 14, fontWeight: 600, textAlign: "center", zIndex: 50
         }}>
           Rejoignez la chasse aux points ! Créez votre compte acheteur 👇
         </div>
@@ -88,5 +89,18 @@ export default function Home() {
         Acheteurs : scannez et cumulez vos points.
       </p>
     </div>
+  );
+}
+
+// Composant principal exporté, avec la barrière Suspense obligatoire
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div style={{ display: "flex", minHeight: "100dvh", alignItems: "center", justifyContent: "center" }}>
+        Chargement...
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
