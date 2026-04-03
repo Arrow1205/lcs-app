@@ -375,4 +375,196 @@ export default function AcheteurPage() {
       <div style={{ display: "flex", background: "var(--bg-card)", borderRadius: 12, padding: 4, marginBottom: 24, border: "1px solid var(--border)" }}>
         <button 
           onClick={() => setActiveTab("dashboard")}
-          style={{ flex: 1, padding: "10px", borderRadius: 8, border: "none", background: activeTab === "dashboard" ? "var(--bg)" : "transparent", color: activeTab === "dashboard" ? "var(--text)" : "var(--text-muted)", fontWeight: 600, fontSize: 14, cursor: "pointer", boxShadow: activeTab === "dashboard"
+          style={{ flex: 1, padding: "10px", borderRadius: 8, border: "none", background: activeTab === "dashboard" ? "var(--bg)" : "transparent", color: activeTab === "dashboard" ? "var(--text)" : "var(--text-muted)", fontWeight: 600, fontSize: 14, cursor: "pointer", boxShadow: activeTab === "dashboard" ? "0 2px 4px rgba(0,0,0,0.05)" : "none" }}
+        >
+          Tableau de bord
+        </button>
+        <button 
+          onClick={() => setActiveTab("my_qr")}
+          style={{ flex: 1, padding: "10px", borderRadius: 8, border: "none", background: activeTab === "my_qr" ? "var(--bg)" : "transparent", color: activeTab === "my_qr" ? "var(--text)" : "var(--text-muted)", fontWeight: 600, fontSize: 14, cursor: "pointer", boxShadow: activeTab === "my_qr" ? "0 2px 4px rgba(0,0,0,0.05)" : "none" }}
+        >
+          Mon QR Code
+        </button>
+      </div>
+
+      {activeTab === "my_qr" ? (
+        <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+          <div style={{ textAlign: "center", padding: "0 20px" }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>Voici ton QR personnel</h2>
+            <p style={{ fontSize: 14, color: "var(--text-muted)", margin: 0 }}>
+              L'organisateur le scannera pour te remettre ton lot et réinitialiser tes points.
+            </p>
+          </div>
+          
+          <div style={{ padding: 24, borderRadius: 20, background: "#ffffff", border: "1px solid rgba(0,0,0,0.06)", display: "inline-block" }}>
+            <img src={qrImageUrl} alt="Mon QR Code" width={250} height={250} style={{ display: "block" }} />
+          </div>
+
+          <div style={{ padding: "12px 20px", borderRadius: 12, background: "rgba(249,105,39,0.1)", color: "var(--accent)", fontSize: 13, fontWeight: 500, textAlign: "center" }}>
+            ⚠️ Ne fais scanner ce QR qu'aux organisateurs !
+          </div>
+        </div>
+      ) : (
+        <>
+          <div style={{ padding: 24, borderRadius: 20, background: "var(--bg-card)", border: "1px solid var(--border)", marginBottom: 20, textAlign: "center" }}>
+            <svg width="130" height="130" viewBox="0 0 130 130" style={{ margin: "0 auto 12px" }}>
+              <circle cx="65" cy="65" r="54" fill="none" stroke="var(--border)" strokeWidth="7" />
+              <circle cx="65" cy="65" r="54" fill="none" stroke={totalPts >= 50 ? "#E24B4A" : "var(--accent)"} strokeWidth="7" strokeLinecap="round" strokeDasharray={2 * Math.PI * 54} strokeDashoffset={2 * Math.PI * 54 * (1 - Math.min(totalPts / 50, 1))} transform="rotate(-90 65 65)" style={{ transition: "stroke-dashoffset 0.8s ease" }} />
+              <text x="65" y="60" textAnchor="middle" dominantBaseline="central" style={{ fontSize: 26, fontWeight: 700, fill: "var(--text)" }}>{totalPts}</text>
+              <text x="65" y="82" textAnchor="middle" style={{ fontSize: 10, fontWeight: 500, fill: "var(--text-muted)", letterSpacing: 1 }}>POINTS</text>
+            </svg>
+            {currentTier && <div style={{ display: "inline-block", padding: "6px 16px", borderRadius: 20, background: "var(--accent)", color: "#fff", fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{currentTier.label}</div>}
+            {nextTier && <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 8 }}><span style={{ fontWeight: 600, color: "var(--text)" }}>{Math.round((nextTier.min - totalPts) * 10) / 10} pts</span> avant <span style={{ fontWeight: 600, color: "var(--accent)" }}>{nextTier.label}</span></div>}
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 24 }}>
+            {TIERS.map((t, i) => {
+              const reached = totalPts >= t.min;
+              return (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 12, background: reached ? "rgba(249,105,39,0.08)" : "var(--bg-card)", border: `1px solid ${reached ? "var(--accent)" : "var(--border)"}`, opacity: reached ? 1 : 0.5, transition: "all 0.3s" }}>
+                  <div style={{ width: 24, height: 24, borderRadius: "50%", background: reached ? "var(--accent)" : "var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#fff", fontWeight: 700, flexShrink: 0 }}>{reached ? "✓" : ""}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: reached ? "var(--accent)" : "var(--text-muted)" }}>{t.label} — {t.min} pts</div>
+                    <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{t.reward}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <button onClick={startScanner} className="animate-pulse-soft" style={{ width: "100%", padding: "20px", borderRadius: 16, border: "none", background: "var(--accent)", color: "#fff", fontSize: 18, fontWeight: 700, cursor: "pointer", marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" />
+              <rect x="7" y="7" width="10" height="10" rx="1" />
+            </svg>
+            Scanner un QR vendeur
+          </button>
+
+          {scanning && (
+            <div style={overlayStyle}>
+              <div className="animate-slide-up" style={{ ...popupStyle, display: "flex", flexDirection: "column", gap: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <h3 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Scanner</h3>
+                  <button onClick={stopScanner} style={{ width: 36, height: 36, borderRadius: "50%", border: "1px solid var(--border)", background: "var(--bg-card)", fontSize: 18, cursor: "pointer", color: "var(--text)", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+                </div>
+                <div id="qr-reader-container" style={{ width: "100%", borderRadius: 16, overflow: "hidden", background: "#000", minHeight: 280 }} />
+                {scanResult?.error && <div style={{ padding: "12px", borderRadius: 10, background: "rgba(226,75,74,0.1)", color: "#E24B4A", fontSize: 14, fontWeight: 500, textAlign: "center" }}>{scanResult.error}</div>}
+                {scanResult?.vendeur && <ScanConfirm vendeur={scanResult.vendeur} acheteurId={acheteurData.id} onDone={() => { stopScanner(); loadData(); }} onCancel={stopScanner} />}
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
+            <div style={statCard}>
+              <div style={{ fontSize: 24, fontWeight: 700, color: "var(--accent)" }}>{acheteurData?.total_achats || 0}</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Achats</div>
+            </div>
+            <div style={statCard}>
+              <div style={{ fontSize: 24, fontWeight: 700, color: "var(--success)" }}>{ventes.reduce((s, v) => s + v.nombre_cartes, 0)}</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Cartes achetées</div>
+            </div>
+          </div>
+
+          <h3 style={sectionTitle}>Historique d'achats</h3>
+          {ventes.length === 0 ? (
+            <div style={{ padding: 24, textAlign: "center", borderRadius: 14, background: "var(--bg-card)", color: "var(--text-muted)", fontSize: 14 }}>Aucun achat pour le moment. Scannez un QR vendeur !</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 24 }}>
+              {ventes.map((v, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 12, background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 600 }}>Table {v.vendeurs?.numero_table}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                      {v.nombre_cartes} carte{v.nombre_cartes > 1 ? "s" : ""} — {Number(v.montant).toFixed(0)}€ — {new Date(v.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--success)", whiteSpace: "nowrap" }}>+{v.points_gagnes} pts</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// --- SCAN CONFIRM COMPONENT ---
+function ScanConfirm({ vendeur, acheteurId, onDone, onCancel }) {
+  const [cartes, setCartes] = useState("");
+  const [montant, setMontant] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const handleConfirm = async () => {
+    const nb = parseInt(cartes) || 0;
+    const mt = parseFloat(montant) || 0;
+    if (nb <= 0 && mt <= 0) return;
+
+    setLoading(true);
+    const { data, error } = await supabase.rpc("enregistrer_vente", {
+      p_vendeur_id: vendeur.id,
+      p_acheteur_id: acheteurId,
+      p_nombre_cartes: nb,
+      p_montant: mt,
+    });
+
+    if (error) {
+      setResult("Erreur : " + error.message);
+    } else {
+      const pts = calcPoints(nb, mt);
+      setResult(`+${pts} points gagnés !`);
+      setTimeout(onDone, 1500);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ padding: "12px 16px", borderRadius: 12, background: "rgba(249,105,39,0.08)", border: "1px solid var(--accent)" }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "var(--accent)" }}>Vendeur Table {vendeur.numero_table}</div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div>
+          <label style={labelStyle}>Nb de cartes</label>
+          <input type="number" value={cartes} onChange={e => setCartes(e.target.value)} placeholder="0" min="0" autoFocus style={inputStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Montant (€)</label>
+          <input type="number" value={montant} onChange={e => setMontant(e.target.value)} placeholder="0" min="0" step="0.5" style={inputStyle} />
+        </div>
+      </div>
+
+      {((parseInt(cartes) > 0) || (parseFloat(montant) > 0)) && (
+        <div style={{ padding: "10px", borderRadius: 10, textAlign: "center", background: "rgba(29,158,117,0.1)", color: "var(--success)", fontSize: 16, fontWeight: 700 }}>
+          +{calcPoints(parseInt(cartes) || 0, parseFloat(montant) || 0)} points
+        </div>
+      )}
+
+      {result && (
+        <div style={{ padding: "10px", borderRadius: 10, textAlign: "center", background: result.includes("Erreur") ? "rgba(226,75,74,0.1)" : "rgba(29,158,117,0.1)", color: result.includes("Erreur") ? "#E24B4A" : "var(--success)", fontSize: 14, fontWeight: 600 }}>
+          {result}
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 10 }}>
+        <button onClick={onCancel} style={{ ...btnSecondary, flex: 1 }}>Annuler</button>
+        <button onClick={handleConfirm} disabled={loading} style={{ ...btnPrimary, flex: 2, background: "var(--success)" }}>
+          {loading ? "..." : "Confirmer l'achat"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// --- SHARED STYLES ---
+const labelStyle = { display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 };
+const inputStyle = { width: "100%", padding: "14px 16px", borderRadius: 12, border: "1.5px solid var(--border)", background: "var(--bg-card)", color: "var(--text)", fontSize: 15, outline: "none" };
+const btnPrimary = { padding: "16px 24px", borderRadius: 14, border: "none", background: "var(--accent)", color: "#fff", fontSize: 16, fontWeight: 600, cursor: "pointer" };
+const btnSecondary = { padding: "14px 24px", borderRadius: 12, border: "1.5px solid var(--border)", background: "transparent", color: "var(--text)", fontSize: 14, fontWeight: 500, cursor: "pointer" };
+const btnLink = { padding: 0, border: "none", background: "transparent", color: "var(--text-muted)", fontSize: 13, cursor: "pointer", textDecoration: "underline" };
+const overlayStyle = { position: "fixed", inset: 0, zIndex: 999, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 16 };
+const popupStyle = { width: "100%", maxWidth: 420, padding: 24, borderRadius: 20, background: "var(--bg)", border: "1px solid var(--border)", maxHeight: "85vh", overflowY: "auto" };
+const statCard = { padding: "18px 16px", borderRadius: 14, background: "var(--bg-card)", border: "1px solid var(--border)" };
+const sectionTitle = { fontSize: 13, fontWeight: 600, color: "var(--text-muted)", marginBottom: 12, letterSpacing: 1, textTransform: "uppercase" };
