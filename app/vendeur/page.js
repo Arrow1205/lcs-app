@@ -2,61 +2,129 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
+const ZONES = ["Basket", "Sport US", "Soccer", "TCG"];
+
 export default function VendeurPage() {
-  const [step, setStep] = useState("login");
+  const [step, setStep] = useState("loading");
   const [email, setEmail] = useState("");
   const [table, setTable] = useState("");
+  const [zone, setZone] = useState(ZONES[0]);
+  
   const [vendor, setVendor] = useState(null);
+  const [ventes, setVentes] = useState([]);
 
   useEffect(() => {
     const saved = localStorage.getItem("lcs_vendor");
     if (saved) {
-      setVendor(JSON.parse(saved));
-      setStep("main");
+      loadVendorData(JSON.parse(saved).email);
+    } else {
+      setStep("login");
     }
   }, []);
 
+  const loadVendorData = async (mail) => {
+    const { data: vData } = await supabase.from("vendeurs").select("*").eq("email", mail).single();
+    if (vData) {
+      setVendor(vData);
+      localStorage.setItem("lcs_vendor", JSON.stringify(vData));
+      
+      // Charger l'historique de ses ventes
+      const { data: sales } = await supabase.from("ventes").select("*, acheteurs(pseudo)").eq("vendeur_id", vData.id).order("created_at", { ascending: false });
+      setVentes(sales || []);
+      setStep("main");
+    } else {
+      setStep("login"); // Si supprimé en base
+    }
+  };
+
   const handleLogin = async () => {
+    if (!email || !table) return alert("Email et table requis");
+    
     let { data } = await supabase.from("vendeurs").select("*").eq("email", email).single();
     if (!data) {
       const qr = `VND-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
-      const { data: nv } = await supabase.from("vendeurs").insert({ email, numero_table: table, qr_code: qr }).select().single();
+      const { data: nv, error } = await supabase.from("vendeurs").insert({ 
+        email, 
+        numero_table: parseInt(table), 
+        zone, 
+        qr_code: qr 
+      }).select().single();
+      
+      if (error) return alert("Erreur d'inscription");
       data = nv;
     }
-    setVendor(data);
-    localStorage.setItem("lcs_vendor", JSON.stringify(data));
-    setStep("main");
+    loadVendorData(data.email);
   };
+
+  if (step === "loading") return <div style={containerStyle}>Chargement...</div>;
 
   if (step === "login") return (
     <div style={containerStyle}>
-      <h1>Espace Vendeur</h1>
+      <h1 style={{ textAlign: "center" }}>Espace Vendeur</h1>
       <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} />
       <input type="number" placeholder="N° Table" value={table} onChange={e => setTable(e.target.value)} style={inputStyle} />
+      
+      <label style={{ fontSize: 13, fontWeight: "bold", color: "#666", marginBottom: -5 }}>Zone du stand :</label>
+      <select value={zone} onChange={e => setZone(e.target.value)} style={inputStyle}>
+        {ZONES.map(z => <option key={z} value={z}>{z}</option>)}
+      </select>
+
       <button onClick={handleLogin} style={btnPrimary}>Ouvrir ma table</button>
     </div>
   );
 
   return (
-    <div style={{ padding: 20, textAlign: "center" }}>
-      <h2>Table {vendor?.numero_table}</h2>
-      <div style={{ background: "white", padding: 20, display: "inline-block", borderRadius: 20 }}>
-        <img src={`https://api.qrserver.com/v1/create-qr-code/?data=LCS-APP:${vendor?.qr_code}`} alt="QR" style={{ width: 250 }} />
+    <div style={{ padding: "24px 20px", paddingBottom: 100 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+        <div>
+          <h2 style={{ margin: 0 }}>Table {vendor?.numero_table}</h2>
+          <span style={{ fontSize: 13, color: "#666" }}>Zone {vendor?.zone}</span>
+        </div>
+        <button onClick={() => { localStorage.clear(); setStep("login"); }} style={btnLink}>Déconnexion</button>
       </div>
-      <p>Faites scanner ce code aux acheteurs</p>
-      <button onClick={() => { localStorage.clear(); setStep("login"); }} style={btnSecondary}>Déconnexion</button>
+
+      {/* QR CODE */}
+      <div style={{ textAlign: "center", marginBottom: 30 }}>
+        <div style={{ background: "#fff", padding: 20, display: "inline-block", borderRadius: 20, border: "1px solid #eee" }}>
+          <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=LCS-APP:${vendor?.qr_code}`} alt="QR" style={{ width: 200, height: 200 }} />
+        </div>
+        <p style={{ color: "#666", fontSize: 14 }}>Faites scanner ce code aux acheteurs après un achat.</p>
+      </div>
+
+      {/* KPI DU VENDEUR */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
+        <div style={statCard}>
+          <div style={{ fontSize: 24, fontWeight: "bold", color: "var(--accent, #F96927)" }}>{ventes.length}</div>
+          <div style={{ fontSize: 12, color: "#666" }}>Ventes totales</div>
+        </div>
+        <div style={statCard}>
+          <div style={{ fontSize: 24, fontWeight: "bold", color: "var(--success, #1D9E75)" }}>{ventes.reduce((s, v) => s + Number(v.montant), 0)}€</div>
+          <div style={{ fontSize: 12, color: "#666" }}>Chiffre d'Affaires</div>
+        </div>
+      </div>
+
+      {/* HISTORIQUE */}
+      <h3 style={{ fontSize: 14, color: "#666", textTransform: "uppercase" }}>Historique de vos ventes</h3>
+      {ventes.length === 0 ? <p style={{color: "#888", fontSize: 14}}>Aucune vente enregistrée.</p> : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {ventes.map(v => (
+            <div key={v.id} style={{ padding: 15, background: "#f9f9f9", borderRadius: 12, display: "flex", justifyContent: "space-between", color: "#000" }}>
+              <div>
+                <div style={{ fontWeight: "bold" }}>Acheteur : {v.acheteurs?.pseudo}</div>
+                <div style={{ fontSize: 12, color: "#666" }}>{v.type_produit} - {v.nombre_cartes} art.</div>
+              </div>
+              <div style={{ fontWeight: "bold", color: "var(--success, #1D9E75)" }}>{v.montant}€</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-// --- SHARED STYLES ---
+// --- STYLES PARTAGÉS ---
 const containerStyle = { display: "flex", flexDirection: "column", gap: 15, padding: 40, justifyContent: "center", minHeight: "80vh" };
-const inputStyle = { padding: 15, borderRadius: 10, border: "1px solid #ddd", fontSize: 16 };
-const btnPrimary = { padding: 15, borderRadius: 10, border: "none", background: "#000", color: "#fff", fontWeight: "bold", cursor: "pointer" };
-const btnSecondary = { padding: 10, borderRadius: 10, border: "1px solid #ddd", background: "none", cursor: "pointer" };
+const inputStyle = { width: "100%", padding: "14px 16px", borderRadius: 12, border: "1.5px solid #ccc", backgroundColor: "#ffffff", color: "#000000", fontSize: 16, outline: "none", marginBottom: 12 };
+const btnPrimary = { padding: 15, borderRadius: 10, border: "none", background: "#000", color: "#fff", fontWeight: "bold", cursor: "pointer", width: "100%" };
 const btnLink = { background: "none", border: "none", textDecoration: "underline", cursor: "pointer", color: "#666" };
-const tabsContainer = { display: "flex", gap: 10, marginBottom: 20 };
-const tabBtn = { flex: 1, padding: 10, border: "1px solid #ddd", borderRadius: 10, cursor: "pointer" };
-const tableStyle = { width: "100%", borderCollapse: "collapse", marginTop: 10 };
-const overlayStyle = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 };
-const popupStyle = { background: "#fff", padding: 20, borderRadius: 20, width: "100%", maxWidth: 400 };
+const statCard = { padding: "18px 16px", borderRadius: 14, background: "#f9f9f9", border: "1px solid #eee", textAlign: "center" };
