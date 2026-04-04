@@ -23,7 +23,8 @@ export default function VendeurPage() {
   }, []);
 
   const loadVendorData = async (mail) => {
-    const { data: vData } = await supabase.from("vendeurs").select("*").eq("email", mail).single();
+    const { data: vData } = await supabase.from("vendeurs").select("*").eq("email", mail).maybeSingle();
+    
     if (vData) {
       setVendor(vData);
       localStorage.setItem("lcs_vendor", JSON.stringify(vData));
@@ -33,24 +34,27 @@ export default function VendeurPage() {
       setVentes(sales || []);
       setStep("main");
     } else {
-      setStep("login"); // Si supprimé en base
+      setStep("login"); 
     }
   };
 
   const handleLogin = async () => {
-    if (!email || !table) return alert("Email et table requis");
+    if (!email || !table) return alert("Email et Numéro de table requis");
     
-    let { data } = await supabase.from("vendeurs").select("*").eq("email", email).single();
+    // On cherche si le vendeur existe déjà
+    let { data } = await supabase.from("vendeurs").select("*").eq("email", email).maybeSingle();
+    
+    // S'il n'existe pas, on le crée
     if (!data) {
       const qr = `VND-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
       const { data: nv, error } = await supabase.from("vendeurs").insert({ 
         email, 
+        zone, // Ajout de la zone
         numero_table: parseInt(table), 
-        zone, 
         qr_code: qr 
       }).select().single();
       
-      if (error) return alert("Erreur d'inscription");
+      if (error) return alert("Erreur lors de l'inscription.");
       data = nv;
     }
     loadVendorData(data.email);
@@ -61,13 +65,17 @@ export default function VendeurPage() {
   if (step === "login") return (
     <div style={containerStyle}>
       <h1 style={{ textAlign: "center" }}>Espace Vendeur</h1>
-      <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} />
-      <input type="number" placeholder="N° Table" value={table} onChange={e => setTable(e.target.value)} style={inputStyle} />
       
-      <label style={{ fontSize: 13, fontWeight: "bold", color: "#666", marginBottom: -5 }}>Zone du stand :</label>
+      <label style={labelStyle}>Email :</label>
+      <input type="email" placeholder="votre@email.com" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} />
+      
+      <label style={labelStyle}>Zone du stand :</label>
       <select value={zone} onChange={e => setZone(e.target.value)} style={inputStyle}>
         {ZONES.map(z => <option key={z} value={z}>{z}</option>)}
       </select>
+
+      <label style={labelStyle}>Numéro de table :</label>
+      <input type="number" placeholder="Ex: 14" value={table} onChange={e => setTable(e.target.value)} style={inputStyle} />
 
       <button onClick={handleLogin} style={btnPrimary}>Ouvrir ma table</button>
     </div>
@@ -124,6 +132,7 @@ export default function VendeurPage() {
 
 // --- STYLES PARTAGÉS ---
 const containerStyle = { display: "flex", flexDirection: "column", gap: 15, padding: 40, justifyContent: "center", minHeight: "80vh" };
+const labelStyle = { fontSize: 13, fontWeight: "bold", color: "#666", marginBottom: -10, zIndex: 1 };
 const inputStyle = { width: "100%", padding: "14px 16px", borderRadius: 12, border: "1.5px solid #ccc", backgroundColor: "#ffffff", color: "#000000", fontSize: 16, outline: "none", marginBottom: 12 };
 const btnPrimary = { padding: 15, borderRadius: 10, border: "none", background: "#000", color: "#fff", fontWeight: "bold", cursor: "pointer", width: "100%" };
 const btnLink = { background: "none", border: "none", textDecoration: "underline", cursor: "pointer", color: "#666" };

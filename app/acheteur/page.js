@@ -6,6 +6,8 @@ const TAGS_DISPO = ["Pokemon", "One Piece", "Magic", "Lorcana", "Basket", "Socce
 
 export default function AcheteurPage() {
   const [step, setStep] = useState("loading");
+  
+  // Champs Formulaire (Page Unique)
   const [pseudo, setPseudo] = useState("");
   const [age, setAge] = useState("");
   const [interets, setInterets] = useState([]);
@@ -23,50 +25,55 @@ export default function AcheteurPage() {
     if (saved) {
       loadUserData(saved);
     } else {
-      setStep("login");
+      setStep("auth"); // Un seul écran pour login/setup
     }
   }, []);
 
   const loadUserData = async (loginName) => {
-    // 1. Charger l'utilisateur
-    const { data: userData } = await supabase.from("acheteurs").select("*").eq("pseudo", loginName).single();
+    const { data: userData } = await supabase.from("acheteurs").select("*").eq("pseudo", loginName).maybeSingle();
     
     if (userData) {
       setUser(userData);
       localStorage.setItem("lcs_pseudo", loginName);
       
-      // 2. Charger son historique
       const { data: vData } = await supabase.from("ventes").select("*, vendeurs(numero_table, zone)").eq("acheteur_id", userData.id).order("created_at", { ascending: false });
       setVentes(vData || []);
       setStep("main");
-    } else {
-      // Si inconnu, on passe à l'inscription (setup)
-      setPseudo(loginName);
-      setStep("setup");
     }
   };
 
-  const handleRegister = async () => {
-    if (!pseudo || !age) return alert("Pseudo et âge requis !");
+  const handleAuth = async () => {
+    if (!pseudo.trim()) return alert("Le pseudo est obligatoire !");
     
-    const { data: newUser, error } = await supabase.from("acheteurs").insert({ 
-      pseudo, 
-      age: parseInt(age),
-      interets,
-      total_points: 0,
-      total_achats: 0
-    }).select().single();
+    // On cherche si le pseudo existe
+    const { data: existingUser } = await supabase.from("acheteurs").select("*").eq("pseudo", pseudo).maybeSingle();
 
-    if (error) return alert("Erreur ou pseudo déjà pris.");
-    
-    loadUserData(pseudo);
+    if (existingUser) {
+      // S'il existe, on le connecte (on ignore l'âge et les intérêts tapés)
+      loadUserData(pseudo);
+    } else {
+      // S'il n'existe pas, c'est une création de compte. L'âge devient obligatoire.
+      if (!age) return alert("Nouveau compte détecté : Ton âge est requis pour t'inscrire !");
+      
+      const { data: newUser, error } = await supabase.from("acheteurs").insert({ 
+        pseudo: pseudo.trim(), 
+        age: parseInt(age),
+        interets,
+        total_points: 0,
+        total_achats: 0
+      }).select().single();
+
+      if (error) return alert("Erreur à la création (Pseudo peut-être déjà pris par quelqu'un d'autre).");
+      
+      loadUserData(pseudo.trim());
+    }
   };
 
   const toggleTag = (tag) => {
     setInterets(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
   };
 
-  // -- SCANNER (Acheteur qui scanne un vendeur) --
+  // -- SCANNER --
   const startScanner = async () => {
     setScanning(true);
     setScanResult(null);
@@ -75,8 +82,8 @@ export default function AcheteurPage() {
     html5QrRef.current = scanner;
 
     await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, async (txt) => {
-      const qrCode = txt.replace("LCS-APP:", ""); // Retire le préfixe
-      const { data: vendeur } = await supabase.from("vendeurs").select("*").eq("qr_code", qrCode).single();
+      const qrCode = txt.replace("LCS-APP:", "");
+      const { data: vendeur } = await supabase.from("vendeurs").select("*").eq("qr_code", qrCode).maybeSingle();
       if (vendeur) {
         setScanResult({ vendeur });
         await scanner.stop();
@@ -87,35 +94,34 @@ export default function AcheteurPage() {
   // RENDER : CHARGEMENT
   if (step === "loading") return <div style={containerStyle}>Chargement...</div>;
 
-  // RENDER : LOGIN (Juste le pseudo)
-  if (step === "login") return (
+  // RENDER : ECRAN UNIQUE LOGIN / INSCRIPTION
+  if (step === "auth") return (
     <div style={containerStyle}>
-      <h1 style={{ textAlign: "center" }}>Espace Acheteur</h1>
-      <input type="text" placeholder="Ton Pseudo..." value={pseudo} onChange={e => setPseudo(e.target.value)} style={inputStyle} />
-      <button onClick={() => loadUserData(pseudo)} style={btnPrimary}>Continuer</button>
-    </div>
-  );
+      <h1 style={{ textAlign: "center", marginBottom: 5 }}>Espace Acheteur</h1>
+      <p style={{ textAlign: "center", fontSize: 13, color: "#666", marginBottom: 20 }}>
+        Connecte-toi avec ton pseudo, ou remplis tout pour créer un compte.
+      </p>
 
-  // RENDER : SETUP (S'il n'existe pas en base)
-  if (step === "setup") return (
-    <div style={containerStyle}>
-      <h2>Création du profil</h2>
-      <input type="text" placeholder="Pseudo" value={pseudo} disabled style={{...inputStyle, opacity: 0.6}} />
-      <input type="number" placeholder="Ton Âge" value={age} onChange={e => setAge(e.target.value)} style={inputStyle} />
+      <label style={labelStyle}>Ton Pseudo * :</label>
+      <input type="text" placeholder="Ex: PokeFan99" value={pseudo} onChange={e => setPseudo(e.target.value)} style={inputStyle} />
       
-      <h4 style={{ margin: "10px 0 5px" }}>Tes centres d'intérêt :</h4>
+      <label style={labelStyle}>Ton Âge (si nouveau compte) :</label>
+      <input type="number" placeholder="Ex: 25" value={age} onChange={e => setAge(e.target.value)} style={inputStyle} />
+      
+      <label style={{...labelStyle, marginTop: 10, marginBottom: 5}}>Tes centres d'intérêt :</label>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
         {TAGS_DISPO.map(tag => (
           <button key={tag} onClick={() => toggleTag(tag)} style={{
-            padding: "8px 12px", borderRadius: 20, border: "1px solid var(--accent, #333)",
-            background: interets.includes(tag) ? "var(--accent, #333)" : "#fff",
+            padding: "8px 12px", borderRadius: 20, border: "1px solid #333",
+            background: interets.includes(tag) ? "#333" : "#fff",
             color: interets.includes(tag) ? "#fff" : "#000", cursor: "pointer", fontSize: 13
           }}>
             {tag}
           </button>
         ))}
       </div>
-      <button onClick={handleRegister} style={btnPrimary}>Créer mon compte</button>
+      
+      <button onClick={handleAuth} style={btnPrimary}>Continuer</button>
     </div>
   );
 
@@ -129,7 +135,7 @@ export default function AcheteurPage() {
           <div style={{ fontSize: 12, color: "#888" }}>Bonjour</div>
           <div style={{ fontSize: 20, fontWeight: "bold" }}>{user?.pseudo}</div>
         </div>
-        <button onClick={() => { localStorage.clear(); setStep("login"); }} style={btnLink}>Quitter</button>
+        <button onClick={() => { localStorage.clear(); setStep("auth"); setPseudo(""); setAge(""); setInterets([]); }} style={btnLink}>Quitter</button>
       </div>
 
       <div style={tabsContainer}>
@@ -191,11 +197,11 @@ export default function AcheteurPage() {
       {scanning && (
         <div style={overlayStyle}>
           <div style={popupStyle}>
-            <h3>Enregistrer l'achat</h3>
+            <h3 style={{ marginTop: 0, color: "#000" }}>Enregistrer l'achat</h3>
             {scanResult?.vendeur ? (
               <ScanConfirm vendeur={scanResult.vendeur} acheteurId={user.id} onDone={() => { setScanning(false); loadUserData(user.pseudo); }} onCancel={() => setScanning(false)} />
             ) : (
-              <div id="qr-reader-container" style={{ width: "100%", minHeight: 250, background: "#000" }} />
+              <div id="qr-reader-container" style={{ width: "100%", minHeight: 250, background: "#000", borderRadius: 12, overflow: "hidden" }} />
             )}
             {!scanResult?.vendeur && <button onClick={() => setScanning(false)} style={{...btnSecondary, width: "100%", marginTop: 15}}>Annuler</button>}
           </div>
@@ -205,16 +211,15 @@ export default function AcheteurPage() {
   );
 }
 
-// COMPOSANT CONFIRMATION ACHAT (Acheteur)
+// COMPOSANT CONFIRMATION ACHAT
 function ScanConfirm({ vendeur, acheteurId, onDone, onCancel }) {
   const [cartes, setCartes] = useState("");
   const [montant, setMontant] = useState("");
-  const [typeProduit, setTypeProduit] = useState("Cartes"); // "Cartes" ou "Scellé"
+  const [typeProduit, setTypeProduit] = useState("Cartes"); 
   const [loading, setLoading] = useState(false);
 
   const handleConfirm = async () => {
     setLoading(true);
-    // On utilise la nouvelle fonction RPC mise à jour !
     const { error } = await supabase.rpc("enregistrer_vente", {
       p_vendeur_id: vendeur.id,
       p_acheteur_id: acheteurId,
@@ -225,24 +230,26 @@ function ScanConfirm({ vendeur, acheteurId, onDone, onCancel }) {
     
     setLoading(false);
     if (!error) onDone();
-    else alert("Erreur lors de l'enregistrement");
+    else alert("Erreur lors de l'enregistrement. Vérifie la connexion.");
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 15 }}>
-      <p style={{ margin: 0, color: "#000" }}><strong>Vendeur Table {vendeur.numero_table}</strong></p>
+      <div style={{ padding: "10px", background: "#f0f0f0", borderRadius: 10 }}>
+        <p style={{ margin: 0, color: "#000" }}>Vendeur <strong>Table {vendeur.numero_table}</strong></p>
+      </div>
       
       <div style={{ display: "flex", gap: 10, background: "#eee", padding: 5, borderRadius: 10 }}>
         <button onClick={() => setTypeProduit("Cartes")} style={{ flex: 1, padding: 8, borderRadius: 8, border: "none", background: typeProduit === "Cartes" ? "#fff" : "transparent", color: "#000", fontWeight: "bold" }}>Cartes</button>
         <button onClick={() => setTypeProduit("Scellé")} style={{ flex: 1, padding: 8, borderRadius: 8, border: "none", background: typeProduit === "Scellé" ? "#fff" : "transparent", color: "#000", fontWeight: "bold" }}>Scellé</button>
       </div>
 
-      <input type="number" value={cartes} onChange={e => setCartes(e.target.value)} placeholder="Quantité (ex: 3)" style={inputStyle} />
+      <input type="number" value={cartes} onChange={e => setCartes(e.target.value)} placeholder="Quantité d'articles (ex: 3)" style={inputStyle} />
       <input type="number" value={montant} onChange={e => setMontant(e.target.value)} placeholder="Montant en € (ex: 15)" style={inputStyle} />
       
       <div style={{ display: "flex", gap: 10 }}>
         <button onClick={onCancel} style={{ ...btnSecondary, flex: 1 }}>Annuler</button>
-        <button onClick={handleConfirm} disabled={loading} style={{ ...btnPrimary, flex: 2 }}>Valider</button>
+        <button onClick={handleConfirm} disabled={loading} style={{ ...btnPrimary, flex: 2 }}>Valider l'achat</button>
       </div>
     </div>
   );
@@ -250,7 +257,7 @@ function ScanConfirm({ vendeur, acheteurId, onDone, onCancel }) {
 
 // --- STYLES PARTAGÉS ---
 const containerStyle = { display: "flex", flexDirection: "column", gap: 15, padding: 40, justifyContent: "center", minHeight: "80vh" };
-// ⚠️ COLOR ET BACKGROUND-COLOR FORCÉS POUR LE DARK MODE
+const labelStyle = { fontSize: 13, fontWeight: "bold", color: "#666", marginBottom: -10, zIndex: 1 };
 const inputStyle = { width: "100%", padding: "14px 16px", borderRadius: 12, border: "1.5px solid #ccc", backgroundColor: "#ffffff", color: "#000000", fontSize: 16, outline: "none", marginBottom: 12 };
 const btnPrimary = { padding: 15, borderRadius: 10, border: "none", background: "#000", color: "#fff", fontWeight: "bold", cursor: "pointer", width: "100%" };
 const btnSecondary = { padding: 10, borderRadius: 10, border: "1px solid #ccc", background: "none", color: "#000", cursor: "pointer" };
