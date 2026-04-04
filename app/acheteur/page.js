@@ -90,8 +90,14 @@ export default function AcheteurPage() {
     }, () => {});
   };
 
+  // =============================================
+  // RENDER : CHARGEMENT
+  // =============================================
   if (step === "loading") return <div style={containerStyle}>Chargement...</div>;
 
+  // =============================================
+  // RENDER : ECRAN UNIQUE LOGIN / INSCRIPTION
+  // =============================================
   if (step === "auth") return (
     <div style={containerStyle}>
       <h1 style={{ textAlign: "center", marginBottom: 5 }}>Espace Acheteur</h1>
@@ -128,10 +134,15 @@ export default function AcheteurPage() {
     </div>
   );
 
+  // =============================================
+  // RENDER : MAIN (Dashboard + QR)
+  // =============================================
   const myQrUrl = `${window.location.origin}/?buyer=${user?.id}`;
 
   return (
-    <div style={{ padding: "24px 20px", paddingBottom: 120 }}>
+    <div style={{ padding: "24px 20px", paddingBottom: 120, maxWidth: 600, margin: "0 auto" }}>
+      
+      {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24, alignItems: "center" }}>
         <div>
           <div style={{ fontSize: 12, color: "#888" }}>Bonjour</div>
@@ -140,26 +151,33 @@ export default function AcheteurPage() {
         <button onClick={() => { localStorage.clear(); setStep("auth"); setPseudo(""); setAge(""); setInterets([]); }} style={btnLink}>Quitter</button>
       </div>
 
+      {/* TABS (Arrondis et Orange) */}
       <div style={tabsContainer}>
-        <button onClick={() => setActiveTab("dash")} style={{...tabBtn, background: activeTab === "dash" ? "#e0e0e0" : "#f5f5f5", color: "#000"}}>Tableau de bord</button>
-        <button onClick={() => setActiveTab("qr")} style={{...tabBtn, background: activeTab === "qr" ? "#e0e0e0" : "#f5f5f5", color: "#000"}}>Mon QR Code</button>
+        <button onClick={() => setActiveTab("dash")} style={activeTab === "dash" ? activeTabStyle : inactiveTabStyle}>Tableau de bord</button>
+        <button onClick={() => setActiveTab("qr")} style={activeTab === "qr" ? activeTabStyle : inactiveTabStyle}>Mon QR Code</button>
       </div>
 
+      {/* CONTENU : MON QR CODE */}
       {activeTab === "qr" ? (
-        <div style={{ textAlign: "center", padding: 20 }}>
+        <div className="animate-fade-in" style={{ textAlign: "center", padding: 20 }}>
           <h2 style={{ fontSize: 18 }}>Voici ton QR personnel</h2>
           <p style={{ fontSize: 14, color: "#666", marginBottom: 20 }}>L'organisateur le scannera pour te remettre ton lot.</p>
-          <div style={{ background: "#fff", padding: 20, display: "inline-block", borderRadius: 20 }}>
+          <div style={{ background: "#fff", padding: 20, display: "inline-block", borderRadius: 20, border: "1px solid #eee" }}>
             <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(myQrUrl)}`} alt="QR" style={{ width: 200, height: 200 }} />
           </div>
         </div>
       ) : (
-        <>
+
+        /* CONTENU : TABLEAU DE BORD */
+        <div className="animate-fade-in">
+          
+          {/* KPI Points */}
           <div style={{ textAlign: "center", padding: 30, background: "#f9f9f9", borderRadius: 20, marginBottom: 20, border: "1px solid #eee" }}>
             <h1 style={{ fontSize: 60, margin: 0, color: "#000" }}>{user?.total_points}</h1>
             <p style={{ margin: 0, color: "#666", fontWeight: "bold" }}>POINTS CUMULÉS</p>
           </div>
 
+          {/* KPI Secondaires */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
             <div style={statCard}>
               <div style={{ fontSize: 24, fontWeight: "bold", color: "#000" }}>{user?.total_achats || 0}</div>
@@ -171,10 +189,12 @@ export default function AcheteurPage() {
             </div>
           </div>
 
-          <button onClick={startScanner} style={{ ...btnPrimary, width: "100%", marginBottom: 24, background: "var(--success, #1D9E75)" }}>
-            📷 Scanner un vendeur
+          {/* BOUTON SCAN FORCÉ EN ORANGE */}
+          <button onClick={startScanner} style={{ ...btnPrimary, width: "100%", marginBottom: 24, background: "var(--accent)" }}>
+            📷 Scanner QR Code
           </button>
 
+          {/* HISTORIQUE */}
           <h3 style={{ fontSize: 14, color: "#666", textTransform: "uppercase" }}>Historique d'achats</h3>
           {ventes.length === 0 ? <p style={{color: "#888", fontSize: 14}}>Aucun achat pour le moment.</p> : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -189,19 +209,23 @@ export default function AcheteurPage() {
               ))}
             </div>
           )}
-        </>
+        </div>
       )}
 
+      {/* POPUP SCAN Vendeur */}
       {scanning && (
         <div style={overlayStyle}>
           <div style={popupStyle}>
-            <h3 style={{ marginTop: 0, color: "#000" }}>Enregistrer l'achat</h3>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 15 }}>
+              <h3 style={{ margin: 0, color: "#000" }}>Enregistrer l'achat</h3>
+              <button onClick={() => setScanning(false)} style={{ border: "none", background: "transparent", fontSize: 18, cursor: "pointer", color: "#000" }}>✕</button>
+            </div>
+            
             {scanResult?.vendeur ? (
               <ScanConfirm vendeur={scanResult.vendeur} acheteurId={user.id} onDone={() => { setScanning(false); loadUserData(user.pseudo); }} onCancel={() => setScanning(false)} />
             ) : (
               <div id="qr-reader-container" style={{ width: "100%", minHeight: 250, background: "#000", borderRadius: 12, overflow: "hidden" }} />
             )}
-            {!scanResult?.vendeur && <button onClick={() => setScanning(false)} style={{...btnSecondary, width: "100%", marginTop: 15}}>Annuler</button>}
           </div>
         </div>
       )}
@@ -209,6 +233,9 @@ export default function AcheteurPage() {
   );
 }
 
+// =============================================
+// COMPOSANT CONFIRMATION ACHAT
+// =============================================
 function ScanConfirm({ vendeur, acheteurId, onDone, onCancel }) {
   const [cartes, setCartes] = useState("");
   const [montant, setMontant] = useState("");
@@ -231,7 +258,7 @@ function ScanConfirm({ vendeur, acheteurId, onDone, onCancel }) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 15 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ padding: "10px", background: "#f0f0f0", borderRadius: 10 }}>
         <p style={{ margin: 0, color: "#000" }}>Vendeur <strong>Table {vendeur.numero_table}</strong></p>
       </div>
@@ -252,15 +279,20 @@ function ScanConfirm({ vendeur, acheteurId, onDone, onCancel }) {
   );
 }
 
-// --- STYLES PARTAGÉS ---
-const containerStyle = { display: "flex", flexDirection: "column", gap: 15, padding: 40, justifyContent: "center", minHeight: "80vh" };
+// =============================================
+// STYLES PARTAGÉS
+// =============================================
+const containerStyle = { display: "flex", flexDirection: "column", gap: 15, padding: 40, justifyContent: "center", minHeight: "80vh", maxWidth: 450, margin: "0 auto" };
 const labelStyle = { fontSize: 13, fontWeight: "bold", color: "#666", marginBottom: -10, zIndex: 1 };
 const inputStyle = { width: "100%", padding: "14px 16px", borderRadius: 12, border: "1.5px solid #ccc", backgroundColor: "#ffffff", color: "#000000", fontSize: 16, outline: "none", marginBottom: 12 };
-const btnPrimary = { padding: 15, borderRadius: 10, border: "none", background: "var(--accent)", color: "#fff", fontWeight: "bold", cursor: "pointer", width: "100%" };
-const btnSecondary = { padding: 10, borderRadius: 10, border: "1px solid #ccc", background: "none", color: "#000", cursor: "pointer" };
+const btnPrimary = { padding: 16, borderRadius: 12, border: "none", background: "var(--accent)", color: "#fff", fontSize: 16, fontWeight: "bold", cursor: "pointer", width: "100%" };
+const btnSecondary = { padding: 14, borderRadius: 12, border: "1px solid #ccc", background: "none", color: "#000", fontWeight: "bold", cursor: "pointer" };
 const btnLink = { background: "none", border: "none", textDecoration: "underline", cursor: "pointer", color: "#666" };
-const tabsContainer = { display: "flex", gap: 10, marginBottom: 20 };
-const tabBtn = { flex: 1, padding: 10, border: "none", borderRadius: 10, cursor: "pointer", fontWeight: "bold" };
 const statCard = { padding: "18px 16px", borderRadius: 14, background: "#f9f9f9", border: "1px solid #eee", textAlign: "center" };
 const overlayStyle = { position: "fixed", inset: 0, zIndex: 999, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 };
 const popupStyle = { background: "#fff", color: "#000", padding: 24, borderRadius: 20, width: "100%", maxWidth: 400 };
+
+// Styles des onglets ronds
+const tabsContainer = { display: "flex", gap: 10, marginBottom: 20, background: "#f5f5f5", padding: 6, borderRadius: 50 };
+const activeTabStyle = { flex: 1, padding: "12px 20px", border: "none", borderRadius: 50, cursor: "pointer", fontWeight: "bold", fontSize: 14, background: "var(--accent)", color: "#fff", transition: "all 0.2s" };
+const inactiveTabStyle = { flex: 1, padding: "12px 20px", border: "none", borderRadius: 50, cursor: "pointer", fontWeight: "bold", fontSize: 14, background: "transparent", color: "#666", transition: "all 0.2s" };
