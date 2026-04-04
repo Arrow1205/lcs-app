@@ -14,7 +14,7 @@ export default function AcheteurPage() {
   
   const [user, setUser] = useState(null);
   const [ventes, setVentes] = useState([]);
-  const [activeTab, setActiveTab] = useState("dash"); // "dash" | "qr"
+  const [activeTab, setActiveTab] = useState("dash");
   
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
@@ -25,7 +25,7 @@ export default function AcheteurPage() {
     if (saved) {
       loadUserData(saved);
     } else {
-      setStep("auth"); // Un seul écran pour login/setup
+      setStep("auth"); 
     }
   }, []);
 
@@ -45,14 +45,11 @@ export default function AcheteurPage() {
   const handleAuth = async () => {
     if (!pseudo.trim()) return alert("Le pseudo est obligatoire !");
     
-    // On cherche si le pseudo existe
     const { data: existingUser } = await supabase.from("acheteurs").select("*").eq("pseudo", pseudo).maybeSingle();
 
     if (existingUser) {
-      // S'il existe, on le connecte (on ignore l'âge et les intérêts tapés)
       loadUserData(pseudo);
     } else {
-      // S'il n'existe pas, c'est une création de compte. L'âge devient obligatoire.
       if (!age) return alert("Nouveau compte détecté : Ton âge est requis pour t'inscrire !");
       
       const { data: newUser, error } = await supabase.from("acheteurs").insert({ 
@@ -63,7 +60,10 @@ export default function AcheteurPage() {
         total_achats: 0
       }).select().single();
 
-      if (error) return alert("Erreur à la création (Pseudo peut-être déjà pris par quelqu'un d'autre).");
+      if (error) {
+        console.error("Détail de l'erreur :", error);
+        return alert(`Erreur base de données: ${error.message}`);
+      }
       
       loadUserData(pseudo.trim());
     }
@@ -73,7 +73,6 @@ export default function AcheteurPage() {
     setInterets(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
   };
 
-  // -- SCANNER --
   const startScanner = async () => {
     setScanning(true);
     setScanResult(null);
@@ -91,10 +90,8 @@ export default function AcheteurPage() {
     }, () => {});
   };
 
-  // RENDER : CHARGEMENT
   if (step === "loading") return <div style={containerStyle}>Chargement...</div>;
 
-  // RENDER : ECRAN UNIQUE LOGIN / INSCRIPTION
   if (step === "auth") return (
     <div style={containerStyle}>
       <h1 style={{ textAlign: "center", marginBottom: 5 }}>Espace Acheteur</h1>
@@ -110,22 +107,27 @@ export default function AcheteurPage() {
       
       <label style={{...labelStyle, marginTop: 10, marginBottom: 5}}>Tes centres d'intérêt :</label>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
-        {TAGS_DISPO.map(tag => (
-          <button key={tag} onClick={() => toggleTag(tag)} style={{
-            padding: "8px 12px", borderRadius: 20, border: "1px solid #333",
-            background: interets.includes(tag) ? "#333" : "#fff",
-            color: interets.includes(tag) ? "#fff" : "#000", cursor: "pointer", fontSize: 13
-          }}>
-            {tag}
-          </button>
-        ))}
+        {TAGS_DISPO.map(tag => {
+          const isSelected = interets.includes(tag);
+          return (
+            <button key={tag} onClick={() => toggleTag(tag)} style={{
+              padding: "8px 12px", borderRadius: 20, 
+              border: `1px solid ${isSelected ? "var(--accent)" : "#ccc"}`,
+              background: isSelected ? "var(--accent)" : "#fff",
+              color: isSelected ? "#fff" : "#000", 
+              cursor: "pointer", fontSize: 13, fontWeight: isSelected ? "bold" : "normal",
+              transition: "all 0.2s"
+            }}>
+              {tag}
+            </button>
+          )
+        })}
       </div>
       
       <button onClick={handleAuth} style={btnPrimary}>Continuer</button>
     </div>
   );
 
-  // RENDER : MAIN (Dashboard + QR)
   const myQrUrl = `${window.location.origin}/?buyer=${user?.id}`;
 
   return (
@@ -153,7 +155,6 @@ export default function AcheteurPage() {
         </div>
       ) : (
         <>
-          {/* KPI */}
           <div style={{ textAlign: "center", padding: 30, background: "#f9f9f9", borderRadius: 20, marginBottom: 20, border: "1px solid #eee" }}>
             <h1 style={{ fontSize: 60, margin: 0, color: "#000" }}>{user?.total_points}</h1>
             <p style={{ margin: 0, color: "#666", fontWeight: "bold" }}>POINTS CUMULÉS</p>
@@ -170,12 +171,10 @@ export default function AcheteurPage() {
             </div>
           </div>
 
-          {/* BOUTON SCAN */}
           <button onClick={startScanner} style={{ ...btnPrimary, width: "100%", marginBottom: 24, background: "var(--success, #1D9E75)" }}>
             📷 Scanner un vendeur
           </button>
 
-          {/* HISTORIQUE */}
           <h3 style={{ fontSize: 14, color: "#666", textTransform: "uppercase" }}>Historique d'achats</h3>
           {ventes.length === 0 ? <p style={{color: "#888", fontSize: 14}}>Aucun achat pour le moment.</p> : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -193,7 +192,6 @@ export default function AcheteurPage() {
         </>
       )}
 
-      {/* POPUP SCAN Vendeur */}
       {scanning && (
         <div style={overlayStyle}>
           <div style={popupStyle}>
@@ -211,7 +209,6 @@ export default function AcheteurPage() {
   );
 }
 
-// COMPOSANT CONFIRMATION ACHAT
 function ScanConfirm({ vendeur, acheteurId, onDone, onCancel }) {
   const [cartes, setCartes] = useState("");
   const [montant, setMontant] = useState("");
@@ -230,7 +227,7 @@ function ScanConfirm({ vendeur, acheteurId, onDone, onCancel }) {
     
     setLoading(false);
     if (!error) onDone();
-    else alert("Erreur lors de l'enregistrement. Vérifie la connexion.");
+    else alert(`Erreur d'enregistrement : ${error.message}`);
   };
 
   return (
@@ -240,8 +237,8 @@ function ScanConfirm({ vendeur, acheteurId, onDone, onCancel }) {
       </div>
       
       <div style={{ display: "flex", gap: 10, background: "#eee", padding: 5, borderRadius: 10 }}>
-        <button onClick={() => setTypeProduit("Cartes")} style={{ flex: 1, padding: 8, borderRadius: 8, border: "none", background: typeProduit === "Cartes" ? "#fff" : "transparent", color: "#000", fontWeight: "bold" }}>Cartes</button>
-        <button onClick={() => setTypeProduit("Scellé")} style={{ flex: 1, padding: 8, borderRadius: 8, border: "none", background: typeProduit === "Scellé" ? "#fff" : "transparent", color: "#000", fontWeight: "bold" }}>Scellé</button>
+        <button onClick={() => setTypeProduit("Cartes")} style={{ flex: 1, padding: 8, borderRadius: 8, border: "none", background: typeProduit === "Cartes" ? "#fff" : "transparent", color: "#000", fontWeight: "bold", cursor: "pointer" }}>Cartes</button>
+        <button onClick={() => setTypeProduit("Scellé")} style={{ flex: 1, padding: 8, borderRadius: 8, border: "none", background: typeProduit === "Scellé" ? "#fff" : "transparent", color: "#000", fontWeight: "bold", cursor: "pointer" }}>Scellé</button>
       </div>
 
       <input type="number" value={cartes} onChange={e => setCartes(e.target.value)} placeholder="Quantité d'articles (ex: 3)" style={inputStyle} />
@@ -259,7 +256,7 @@ function ScanConfirm({ vendeur, acheteurId, onDone, onCancel }) {
 const containerStyle = { display: "flex", flexDirection: "column", gap: 15, padding: 40, justifyContent: "center", minHeight: "80vh" };
 const labelStyle = { fontSize: 13, fontWeight: "bold", color: "#666", marginBottom: -10, zIndex: 1 };
 const inputStyle = { width: "100%", padding: "14px 16px", borderRadius: 12, border: "1.5px solid #ccc", backgroundColor: "#ffffff", color: "#000000", fontSize: 16, outline: "none", marginBottom: 12 };
-const btnPrimary = { padding: 15, borderRadius: 10, border: "none", background: "#000", color: "#fff", fontWeight: "bold", cursor: "pointer", width: "100%" };
+const btnPrimary = { padding: 15, borderRadius: 10, border: "none", background: "var(--accent)", color: "#fff", fontWeight: "bold", cursor: "pointer", width: "100%" };
 const btnSecondary = { padding: 10, borderRadius: 10, border: "1px solid #ccc", background: "none", color: "#000", cursor: "pointer" };
 const btnLink = { background: "none", border: "none", textDecoration: "underline", cursor: "pointer", color: "#666" };
 const tabsContainer = { display: "flex", gap: 10, marginBottom: 20 };
