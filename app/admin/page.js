@@ -195,7 +195,6 @@ export default function AdminPage() {
                 <h3 style={{ margin: "0 0 15px 0", color: "var(--accent)" }}>🏆 Top 5 Dépenses</h3>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {top5Acheteurs.map((a, i) => (
-                    // CORRECTION DU TEXTE BLANC ICI : ajout de color: "#000"
                     <div key={a.id} style={{ display: "flex", justifyContent: "space-between", padding: 10, background: i===0?"#FFF5F0":"#f9f9f9", borderRadius: 8, fontWeight: i===0?"bold":"normal", color: "#000" }}>
                       <span>#{i+1} {a.pseudo}</span>
                       <span style={{ color: "var(--success)" }}>{a.totalSpent}€</span>
@@ -241,7 +240,7 @@ export default function AdminPage() {
 
       <div style={{ position: "fixed", bottom: 24, left: 24, right: 24, maxWidth: 900, margin: "0 auto" }}>
         <button onClick={startScanner} style={{...btnPrimary, background: "var(--accent)"}}>
-          📷 Scanner QR Code
+          📷 Scanner QR Code (Remise de lot)
         </button>
       </div>
 
@@ -259,7 +258,8 @@ export default function AdminPage() {
                 <div style={{ fontSize: 18, fontWeight: "bold", color: "#000" }}>{scanResult.acheteur.pseudo}</div>
                 <div style={{ fontSize: 14, color: "#666", marginBottom: 15 }}>{scanResult.acheteur.total_points} points actuels</div>
                 <button onClick={async () => {
-                   await supabase.from("acheteurs").update({ total_points: 0 }).eq("id", scanResult.acheteur.id);
+                   const now = new Date().toISOString();
+                   await supabase.from("acheteurs").update({ total_points: 0, last_reset_at: now }).eq("id", scanResult.acheteur.id);
                    setScanResult(null); stopScanner(); loadData();
                    alert(`Points remis à zéro !`);
                 }} style={{ ...btnPrimary, background: "#E24B4A" }}>
@@ -277,7 +277,7 @@ export default function AdminPage() {
 const containerStyle = { display: "flex", flexDirection: "column", gap: 15, padding: 40, justifyContent: "center", minHeight: "80vh", maxWidth: 400, margin: "0 auto" };
 const inputStyle = { width: "100%", padding: "14px 16px", borderRadius: 12, border: "1.5px solid #ccc", backgroundColor: "#ffffff", color: "#000000", fontSize: 16, outline: "none", marginBottom: 12 };
 const btnPrimary = { padding: 16, borderRadius: 12, border: "none", background: "var(--accent)", color: "#fff", fontSize: 16, fontWeight: "bold", cursor: "pointer", width: "100%" };
-const btnSecondary = { padding: "8px 16px", borderRadius: 50, border: "1px solid #ccc", background: "#fff", color: "#000", fontSize: 13, cursor: "pointer" };
+const btnSecondary = { padding: "8px 16px", borderRadius: 50, border: "1px solid #ccc", background: "#fff", color: "#000", fontSize: 13, cursor: "pointer", fontWeight: "bold" };
 const btnLink = { background: "none", border: "none", textDecoration: "underline", cursor: "pointer", color: "#666" };
 const tabsContainer = { display: "flex", gap: 10, marginBottom: 20, background: "#f5f5f5", padding: 6, borderRadius: 50 };
 const activeTabStyle = { flex: 1, padding: "12px 20px", border: "none", borderRadius: 50, cursor: "pointer", fontWeight: "bold", fontSize: 14, background: "var(--accent)", color: "#fff", transition: "all 0.2s" };

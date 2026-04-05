@@ -51,7 +51,6 @@ export default function AcheteurPage() {
     }
   };
 
-  // ÉCOUTE DE LA RÉPONSE DU VENDEUR (Realtime via la table 'scans')
   useEffect(() => {
     if (!user || !currentScanId) return;
     const channel = supabase.channel('schema-db-changes')
@@ -60,7 +59,7 @@ export default function AcheteurPage() {
         if (payload.new.status === 'accepted') {
           setAttenteValidation(false);
           setCurrentScanId(null);
-          loadUserData(user.pseudo); // Recharge les points et l'historique
+          loadUserData(user.pseudo);
           alert("🎉 Achat validé ! Tes points ont été ajoutés.");
         } else if (payload.new.status === 'rejected') {
           setAttenteValidation(false);
@@ -73,7 +72,6 @@ export default function AcheteurPage() {
 
   const toggleTag = (tag) => setInterets(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
 
-  // -- SCANNER : Envoi du Ping au vendeur --
   const startScanner = async () => {
     setScanning(true);
     const { Html5Qrcode } = await import("html5-qrcode");
@@ -89,7 +87,6 @@ export default function AcheteurPage() {
         setScanning(false);
         setAttenteValidation(true);
         
-        // On crée la demande d'achat dans la table 'scans' pour que le vendeur la reçoive
         const { data: scanInfo } = await supabase.from("scans").insert({
           vendeur_id: vendeur.id,
           acheteur_id: user.id,
@@ -159,6 +156,12 @@ export default function AcheteurPage() {
           <div style={{ textAlign: "center", padding: 30, background: "#f9f9f9", borderRadius: 20, marginBottom: 20, border: "1px solid #eee" }}>
             <h1 style={{ fontSize: 60, margin: 0, color: "#000" }}>{user?.total_points}</h1>
             <p style={{ margin: 0, color: "#666", fontWeight: "bold" }}>POINTS CUMULÉS</p>
+            
+            {user?.last_reset_at && (
+              <div style={{ marginTop: 12, padding: "6px 12px", background: "rgba(226,75,74,0.1)", color: "#E24B4A", borderRadius: 20, display: "inline-block", fontSize: 12, fontWeight: "bold" }}>
+                Dernier reset : {new Date(user.last_reset_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit' })}
+              </div>
+            )}
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
@@ -193,7 +196,6 @@ export default function AcheteurPage() {
         </div>
       )}
 
-      {/* POPUP SCANNING */}
       {scanning && (
         <div style={overlayStyle}>
           <div style={popupStyle}>
@@ -206,7 +208,6 @@ export default function AcheteurPage() {
         </div>
       )}
 
-      {/* POPUP ATTENTE VENDEUR */}
       {attenteValidation && (
         <div style={overlayStyle}>
           <div style={popupStyle}>
@@ -218,7 +219,6 @@ export default function AcheteurPage() {
               <div className="animate-pulse-soft" style={{ fontSize: 40 }}>⏳</div>
             </div>
             <button onClick={async () => {
-              // Si l'acheteur annule, on met la demande en rejected pour vider l'écran du vendeur
               await supabase.from("scans").update({ status: 'rejected' }).eq("id", currentScanId);
               setAttenteValidation(false);
               setCurrentScanId(null);
@@ -230,7 +230,6 @@ export default function AcheteurPage() {
   );
 }
 
-// STYLES PARTAGÉS
 const containerStyle = { display: "flex", flexDirection: "column", gap: 15, padding: 40, justifyContent: "center", minHeight: "80vh", maxWidth: 450, margin: "0 auto" };
 const labelStyle = { fontSize: 13, fontWeight: "bold", color: "#666", marginBottom: -10, zIndex: 1 };
 const inputStyle = { width: "100%", padding: "14px 16px", borderRadius: 12, border: "1.5px solid #ccc", backgroundColor: "#ffffff", color: "#000000", fontSize: 16, outline: "none", marginBottom: 12 };
