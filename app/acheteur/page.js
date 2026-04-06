@@ -2,17 +2,19 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 
-const TAGS_DISPO = ["Pokemon", "One Piece", "Magic", "Lorcana", "Basket", "Soccer", "Sport US", "Formule 1", "Comics"];
+const TAGS_DISPO = ["BASKET", "FOOTBALL", "BASEBALL", "NHL", "POKEMON", "COMICS", "NFL", "TCG"];
 
 export default function AcheteurPage() {
   const [step, setStep] = useState("loading");
+  
+  // Formulaire
   const [pseudo, setPseudo] = useState("");
   const [age, setAge] = useState("");
   const [interets, setInterets] = useState([]);
   
   const [user, setUser] = useState(null);
   const [ventes, setVentes] = useState([]);
-  const [activeTab, setActiveTab] = useState("dash");
+  const [activeTab, setActiveTab] = useState("statut"); // "statut" | "historique" | "qr"
   
   const [scanning, setScanning] = useState(false);
   const [attenteValidation, setAttenteValidation] = useState(false);
@@ -42,11 +44,11 @@ export default function AcheteurPage() {
     if (existingUser) {
       loadUserData(pseudo);
     } else {
-      if (!age) return alert("Nouveau compte détecté : Ton âge est requis pour t'inscrire !");
+      if (!age) return alert("Ton âge est requis pour t'inscrire !");
       const { data: newUser, error } = await supabase.from("acheteurs").insert({ 
         pseudo: pseudo.trim(), age: parseInt(age), interets, total_points: 0, total_achats: 0
       }).select().single();
-      if (error) return alert(`Erreur base de données: ${error.message}`);
+      if (error) return alert(`Erreur: ${error.message}`);
       loadUserData(pseudo.trim());
     }
   };
@@ -60,11 +62,11 @@ export default function AcheteurPage() {
           setAttenteValidation(false);
           setCurrentScanId(null);
           loadUserData(user.pseudo);
-          alert("🎉 Achat validé ! Tes points ont été ajoutés.");
+          // Popin de félicitation temporaire possible ici
         } else if (payload.new.status === 'rejected') {
           setAttenteValidation(false);
           setCurrentScanId(null);
-          alert("❌ Le vendeur a annulé la demande d'achat.");
+          alert("Le vendeur a annulé la demande d'achat.");
         }
       }).subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -86,121 +88,144 @@ export default function AcheteurPage() {
         await scanner.stop();
         setScanning(false);
         setAttenteValidation(true);
-        
-        const { data: scanInfo } = await supabase.from("scans").insert({
-          vendeur_id: vendeur.id,
-          acheteur_id: user.id,
-          status: 'pending'
-        }).select().single();
-        
+        const { data: scanInfo } = await supabase.from("scans").insert({ vendeur_id: vendeur.id, acheteur_id: user.id, status: 'pending' }).select().single();
         setCurrentScanId(scanInfo.id);
       }
     }, () => {});
+  };
+
+  const getLevel = (pts) => {
+    if (pts < 50) return { name: "ROOKIE", rank: "1/5" };
+    if (pts < 100) return { name: "PRO", rank: "2/5" };
+    if (pts < 250) return { name: "ALL STAR", rank: "3/5" };
+    if (pts < 500) return { name: "MVP", rank: "4/5" };
+    return { name: "HALL OF FAMER", rank: "5/5" };
   };
 
   if (step === "loading") return <div style={containerStyle}>Chargement...</div>;
 
   if (step === "auth") return (
     <div style={containerStyle}>
-      <h1 style={{ textAlign: "center", marginBottom: 5 }}>Espace Acheteur</h1>
-      <p style={{ textAlign: "center", fontSize: 13, color: "#666", marginBottom: 20 }}>Connecte-toi avec ton pseudo, ou remplis tout pour créer un compte.</p>
-      <label style={labelStyle}>Ton Pseudo * :</label>
-      <input type="text" placeholder="Ex: PokeFan99" value={pseudo} onChange={e => setPseudo(e.target.value)} style={inputStyle} />
-      <label style={labelStyle}>Ton Âge (si nouveau compte) :</label>
-      <input type="number" placeholder="Ex: 25" value={age} onChange={e => setAge(e.target.value)} style={inputStyle} />
-      <label style={{...labelStyle, marginTop: 10, marginBottom: 5}}>Tes centres d'intérêt :</label>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
+      <style dangerouslySetInnerHTML={{__html: `@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fugaz+One&display=swap'); .fugaz { font-family: 'Fugaz One', sans-serif; font-style: italic; } .dm { font-family: 'DM Sans', sans-serif; }`}} />
+      <h1 className="fugaz" style={{ textAlign: "center", fontSize: 26, margin: "0 0 20px 0" }}>INSCRIPTION VISITEUR</h1>
+      <p className="dm" style={{ textAlign: "center", fontSize: 13, color: "#ccc", marginBottom: 30, padding: "0 20px" }}>
+        Texte descriptif des avantages Texte descriptif des avantages des avantages.
+      </p>
+
+      <input className="dm" type="text" placeholder="Pseudo" value={pseudo} onChange={e => setPseudo(e.target.value)} style={inputStyle} />
+      <input className="dm" type="number" placeholder="Age" value={age} onChange={e => setAge(e.target.value)} style={inputStyle} />
+      
+      <p className="dm" style={{ margin: "10px 0 10px 10px", fontSize: 14 }}>Que collectionne tu ?</p>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 30 }}>
         {TAGS_DISPO.map(tag => {
           const isSelected = interets.includes(tag);
           return (
-            <button key={tag} onClick={() => toggleTag(tag)} style={{
-              padding: "8px 12px", borderRadius: 20, border: `1px solid ${isSelected ? "var(--accent)" : "#ccc"}`,
-              background: isSelected ? "var(--accent)" : "#fff", color: isSelected ? "#fff" : "#000", cursor: "pointer", fontSize: 13, fontWeight: isSelected ? "bold" : "normal", transition: "all 0.2s"
+            <button key={tag} onClick={() => toggleTag(tag)} className="fugaz" style={{
+              padding: "8px 16px", borderRadius: 50, border: "none",
+              background: isSelected ? "#F06A2A" : "rgba(255,255,255,0.1)",
+              color: "#fff", cursor: "pointer", fontSize: 13, transition: "all 0.2s"
             }}>
               {tag}
             </button>
           )
         })}
       </div>
-      <button onClick={handleAuth} style={btnPrimary}>Continuer</button>
+      
+      <button onClick={handleAuth} className="fugaz" style={btnPrimary}>CONTINUER</button>
     </div>
   );
 
   const myQrUrl = `${window.location.origin}/?buyer=${user?.id}`;
+  const currentLevel = user ? getLevel(user.total_points) : {name: "", rank: ""};
 
   return (
-    <div style={{ padding: "24px 20px", paddingBottom: 120, maxWidth: 600, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24, alignItems: "center" }}>
-        <div>
-          <div style={{ fontSize: 12, color: "#888" }}>Bonjour</div>
-          <div style={{ fontSize: 20, fontWeight: "bold" }}>{user?.pseudo}</div>
-        </div>
-        <button onClick={() => { localStorage.clear(); setStep("auth"); setPseudo(""); setAge(""); setInterets([]); }} style={btnLink}>Quitter</button>
+    <div style={{ ...containerStyle, padding: "30px 20px 100px 20px", justifyContent: "flex-start" }}>
+      <style dangerouslySetInnerHTML={{__html: `@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fugaz+One&display=swap'); .fugaz { font-family: 'Fugaz One', sans-serif; font-style: italic; } .dm { font-family: 'DM Sans', sans-serif; }`}} />
+      
+      {/* HEADER */}
+      <div style={{ marginBottom: 20 }}>
+        <div className="fugaz" style={{ fontSize: 18, color: "#fff", letterSpacing: 1 }}>BIENVENUE</div>
+        <div className="fugaz" style={{ fontSize: 36, color: "#F06A2A", lineHeight: 1, letterSpacing: 1 }}>{user?.pseudo}</div>
       </div>
 
-      <div style={tabsContainer}>
-        <button onClick={() => setActiveTab("dash")} style={activeTab === "dash" ? activeTabStyle : inactiveTabStyle}>Tableau de bord</button>
-        <button onClick={() => setActiveTab("qr")} style={activeTab === "qr" ? activeTabStyle : inactiveTabStyle}>Mon QR Code</button>
+      {/* TABS */}
+      <div className="fugaz" style={{ display: "flex", gap: 15, marginBottom: 30, borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: 10 }}>
+        <button onClick={() => setActiveTab("statut")} style={activeTab === "statut" ? activeTabStyle : inactiveTabStyle}>STATUT</button>
+        <button onClick={() => setActiveTab("historique")} style={activeTab === "historique" ? activeTabStyle : inactiveTabStyle}>HISTORIQUE</button>
+        <button onClick={() => setActiveTab("qr")} style={activeTab === "qr" ? activeTabStyle : inactiveTabStyle}>QR CODE</button>
       </div>
 
-      {activeTab === "qr" ? (
-        <div className="animate-fade-in" style={{ textAlign: "center", padding: 20 }}>
-          <h2 style={{ fontSize: 18 }}>Voici ton QR personnel</h2>
-          <p style={{ fontSize: 14, color: "#666", marginBottom: 20 }}>L'organisateur le scannera pour te remettre ton lot.</p>
-          <div style={{ background: "#fff", padding: 20, display: "inline-block", borderRadius: 20, border: "1px solid #eee" }}>
-            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(myQrUrl)}`} alt="QR" style={{ width: 200, height: 200 }} />
-          </div>
-        </div>
-      ) : (
+      {/* CONTENU : STATUT */}
+      {activeTab === "statut" && (
         <div className="animate-fade-in">
-          <div style={{ textAlign: "center", padding: 30, background: "#f9f9f9", borderRadius: 20, marginBottom: 20, border: "1px solid #eee" }}>
-            <h1 style={{ fontSize: 60, margin: 0, color: "#000" }}>{user?.total_points}</h1>
-            <p style={{ margin: 0, color: "#666", fontWeight: "bold" }}>POINTS CUMULÉS</p>
-            
-            {user?.last_reset_at && (
-              <div style={{ marginTop: 12, padding: "6px 12px", background: "rgba(226,75,74,0.1)", color: "#E24B4A", borderRadius: 20, display: "inline-block", fontSize: 12, fontWeight: "bold" }}>
-                Dernier reset : {new Date(user.last_reset_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit' })}
-              </div>
-            )}
+          {/* Level Card */}
+          <div style={{ background: "#1A0DFF", borderRadius: 16, padding: "20px", textAlign: "center", marginBottom: 20 }}>
+            <div className="dm" style={{ fontSize: 14 }}>Level</div>
+            <div className="fugaz" style={{ fontSize: 38, margin: "5px 0" }}>{currentLevel.name}</div>
+            <div className="dm" style={{ fontSize: 12 }}>{currentLevel.rank}</div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
-            <div style={statCard}>
-              <div style={{ fontSize: 24, fontWeight: "bold", color: "#000" }}>{user?.total_achats || 0}</div>
-              <div style={{ fontSize: 12, color: "#666" }}>Transactions</div>
+          {/* Stats Cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 15, marginBottom: 20 }}>
+            <div style={statCardDark}>
+              <div className="fugaz" style={{ fontSize: 40, color: "#F06A2A", lineHeight: 1 }}>{user?.total_points}</div>
+              <div className="dm" style={{ fontSize: 12, marginTop: 5 }}>Points</div>
             </div>
-            <div style={statCard}>
-              <div style={{ fontSize: 24, fontWeight: "bold", color: "#000" }}>{ventes.reduce((s, v) => s + v.nombre_cartes + (v.nombre_scelles||0), 0)}</div>
-              <div style={{ fontSize: 12, color: "#666" }}>Articles achetés</div>
+            <div style={statCardDark}>
+              <div className="fugaz" style={{ fontSize: 40, color: "#F06A2A", lineHeight: 1 }}>{user?.total_achats}</div>
+              <div className="dm" style={{ fontSize: 12, marginTop: 5 }}>Achats</div>
             </div>
           </div>
+        </div>
+      )}
 
-          <button onClick={startScanner} style={{ ...btnPrimary, width: "100%", marginBottom: 24, background: "var(--accent)" }}>
-            📷 Scanner QR Code
-          </button>
-
-          <h3 style={{ fontSize: 14, color: "#666", textTransform: "uppercase" }}>Historique d'achats</h3>
-          {ventes.length === 0 ? <p style={{color: "#888", fontSize: 14}}>Aucun achat pour le moment.</p> : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {ventes.map(v => (
-                <div key={v.id} style={{ padding: 15, background: "#f9f9f9", borderRadius: 12, display: "flex", justifyContent: "space-between", color: "#000" }}>
-                  <div>
-                    <div style={{ fontWeight: "bold" }}>Table {v.vendeurs?.numero_table} ({v.vendeurs?.zone})</div>
-                    <div style={{ fontSize: 12, color: "#666" }}>Cartes: {v.nombre_cartes} | Scellés: {v.nombre_scelles||0}</div>
+      {/* CONTENU : HISTORIQUE */}
+      {activeTab === "historique" && (
+        <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {ventes.length === 0 ? <p className="dm" style={{color: "#888", fontSize: 14}}>Aucun achat pour le moment.</p> : (
+            ventes.map(v => (
+              <div key={v.id} style={{ padding: "15px", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <div className="dm" style={{ fontWeight: "bold", fontSize: 12, color: "#F06A2A", textTransform: "uppercase" }}>
+                    TABLE N°{v.vendeurs?.numero_table} - {v.vendeurs?.zone}
                   </div>
-                  <div style={{ fontWeight: "bold", color: "var(--success, #1D9E75)" }}>+{v.points_gagnes} pts</div>
+                  <div className="dm" style={{ fontSize: 11, color: "#ccc", marginTop: 4, textTransform: "uppercase" }}>
+                    {v.nombre_cartes} CARTES  {v.nombre_scelles||0} SCELLÉS
+                  </div>
                 </div>
-              ))}
-            </div>
+                <div style={{ textAlign: "right" }}>
+                  <div className="fugaz" style={{ color: "#F06A2A", fontSize: 18 }}>{v.points_gagnes} Pts</div>
+                  <div className="dm" style={{ fontSize: 10, color: "#888" }}>{v.montant} €</div>
+                </div>
+              </div>
+            ))
           )}
         </div>
       )}
 
+      {/* CONTENU : QR CODE */}
+      {activeTab === "qr" && (
+        <div className="animate-fade-in" style={{ textAlign: "center", padding: "20px 0" }}>
+          <div style={{ background: "#fff", padding: 25, display: "inline-block", borderRadius: 20 }}>
+            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(myQrUrl)}`} alt="QR" style={{ width: 220, height: 220 }} />
+          </div>
+          <button onClick={() => { localStorage.clear(); setStep("auth"); }} className="dm" style={{ display: "block", margin: "30px auto 0", background: "none", border: "none", color: "#666", textDecoration: "underline" }}>Se déconnecter</button>
+        </div>
+      )}
+
+      {/* BOUTON FIXÉ EN BAS */}
+      <div style={{ position: "fixed", bottom: 20, left: 20, right: 20, maxWidth: 600, margin: "0 auto" }}>
+        <button onClick={startScanner} className="fugaz" style={btnPrimary}>
+          SCANNER UN EXPOSANT
+        </button>
+      </div>
+
+      {/* POPUP SCANNING */}
       {scanning && (
         <div style={overlayStyle}>
           <div style={popupStyle}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 15 }}>
-              <h3 style={{ margin: 0, color: "#000" }}>Scanner Vendeur</h3>
+              <h3 className="fugaz" style={{ margin: 0, color: "#000" }}>Scanner Exposant</h3>
               <button onClick={() => { if(html5QrRef.current) html5QrRef.current.stop(); setScanning(false); }} style={{ border: "none", background: "transparent", fontSize: 18, cursor: "pointer", color: "#000" }}>✕</button>
             </div>
             <div id="qr-reader-container" style={{ width: "100%", minHeight: 250, background: "#000", borderRadius: 12, overflow: "hidden" }} />
@@ -208,21 +233,20 @@ export default function AcheteurPage() {
         </div>
       )}
 
+      {/* POPUP ATTENTE / MERCI */}
       {attenteValidation && (
         <div style={overlayStyle}>
-          <div style={popupStyle}>
-            <h3 style={{ marginTop: 0, color: "#000", textAlign: "center" }}>Connexion établie !</h3>
-            <p style={{ color: "#666", textAlign: "center", fontSize: 15, marginBottom: 20 }}>
-              Le vendeur a reçu ta demande sur son écran. Il va maintenant renseigner le détail de tes achats.
+          <div style={{...popupStyle, background: "#050514", color: "#fff", border: "1px solid rgba(255,255,255,0.1)", textAlign: "center", padding: "40px 20px" }}>
+            <h3 className="fugaz" style={{ margin: 0, fontSize: 24 }}>EN ATTENTE...</h3>
+            <p className="dm" style={{ color: "#ccc", fontSize: 14, marginTop: 10, marginBottom: 30 }}>
+              L'exposant finalise ta transaction.
             </p>
-            <div style={{ display: "flex", justifyContent: "center", padding: 20 }}>
-              <div className="animate-pulse-soft" style={{ fontSize: 40 }}>⏳</div>
-            </div>
+            <div className="animate-pulse-soft" style={{ fontSize: 50, marginBottom: 30 }}>⏳</div>
             <button onClick={async () => {
               await supabase.from("scans").update({ status: 'rejected' }).eq("id", currentScanId);
               setAttenteValidation(false);
               setCurrentScanId(null);
-            }} style={{ ...btnSecondary, width: "100%" }}>Annuler la demande</button>
+            }} className="fugaz" style={{...btnPrimary, background: "rgba(255,255,255,0.1)", color: "#fff"}}>ANNULER</button>
           </div>
         </div>
       )}
@@ -230,15 +254,13 @@ export default function AcheteurPage() {
   );
 }
 
-const containerStyle = { display: "flex", flexDirection: "column", gap: 15, padding: 40, justifyContent: "center", minHeight: "80vh", maxWidth: 450, margin: "0 auto" };
-const labelStyle = { fontSize: 13, fontWeight: "bold", color: "#666", marginBottom: -10, zIndex: 1 };
-const inputStyle = { width: "100%", padding: "14px 16px", borderRadius: 12, border: "1.5px solid #ccc", backgroundColor: "#ffffff", color: "#000000", fontSize: 16, outline: "none", marginBottom: 12 };
-const btnPrimary = { padding: 16, borderRadius: 12, border: "none", background: "var(--accent)", color: "#fff", fontSize: 16, fontWeight: "bold", cursor: "pointer", width: "100%" };
-const btnSecondary = { padding: 14, borderRadius: 12, border: "1px solid #ccc", background: "none", color: "#000", fontWeight: "bold", cursor: "pointer" };
-const btnLink = { background: "none", border: "none", textDecoration: "underline", cursor: "pointer", color: "#666" };
-const statCard = { padding: "18px 16px", borderRadius: 14, background: "#f9f9f9", border: "1px solid #eee", textAlign: "center" };
-const overlayStyle = { position: "fixed", inset: 0, zIndex: 999, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 };
+// STYLES
+const containerStyle = { display: "flex", flexDirection: "column", padding: 30, minHeight: "100dvh", backgroundColor: "#050514", color: "#fff", maxWidth: 500, margin: "0 auto" };
+const inputStyle = { width: "100%", padding: "16px 20px", borderRadius: 50, border: "none", backgroundColor: "#ffffff", color: "#000000", fontSize: 14, outline: "none", marginBottom: 15 };
+const btnPrimary = { padding: "18px", borderRadius: 50, border: "none", background: "#F06A2A", color: "#fff", fontSize: 16, cursor: "pointer", width: "100%" };
+const statCardDark = { padding: "20px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)", textAlign: "center", background: "transparent" };
+const overlayStyle = { position: "fixed", inset: 0, zIndex: 999, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(5px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 };
 const popupStyle = { background: "#fff", color: "#000", padding: 24, borderRadius: 20, width: "100%", maxWidth: 400 };
-const tabsContainer = { display: "flex", gap: 10, marginBottom: 20, background: "#f5f5f5", padding: 6, borderRadius: 50 };
-const activeTabStyle = { flex: 1, padding: "12px 20px", border: "none", borderRadius: 50, cursor: "pointer", fontWeight: "bold", fontSize: 14, background: "var(--accent)", color: "#fff", transition: "all 0.2s" };
-const inactiveTabStyle = { flex: 1, padding: "12px 20px", border: "none", borderRadius: 50, cursor: "pointer", fontWeight: "bold", fontSize: 14, background: "transparent", color: "#666", transition: "all 0.2s" };
+
+const activeTabStyle = { background: "transparent", border: "none", borderBottom: "3px solid #fff", color: "#fff", paddingBottom: 5, cursor: "pointer", fontSize: 14 };
+const inactiveTabStyle = { background: "transparent", border: "none", borderBottom: "3px solid transparent", color: "#666", paddingBottom: 5, cursor: "pointer", fontSize: 14 };
