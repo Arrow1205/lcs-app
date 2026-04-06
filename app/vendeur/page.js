@@ -42,6 +42,7 @@ export default function VendeurPage() {
 
   if (step === "login") return (
     <div style={containerStyle}>
+      <style dangerouslySetInnerHTML={{__html: `@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fugaz+One&display=swap'); .fugaz { font-family: 'Fugaz One', sans-serif; font-style: italic; } .dm { font-family: 'DM Sans', sans-serif; }`}} />
       <h1 className="fugaz" style={{ textAlign: "center", marginBottom: 30 }}>INSCRIPTION EXPOSANT</h1>
       <input className="dm" type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} />
       <select className="dm" value={zone} onChange={e => setZone(e.target.value)} style={inputStyle}>
@@ -63,6 +64,7 @@ export default function VendeurPage() {
 
   return (
     <div style={{ ...containerStyle, paddingBottom: 100 }}>
+      <style dangerouslySetInnerHTML={{__html: `@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fugaz+One&display=swap'); .fugaz { font-family: 'Fugaz One', sans-serif; font-style: italic; } .dm { font-family: 'DM Sans', sans-serif; }`}} />
       <div style={verticalText}>EXPOSANT</div>
       <button onClick={() => { localStorage.clear(); window.location.reload(); }} style={logoutBtn}>DECONNEXION</button>
 
@@ -77,13 +79,13 @@ export default function VendeurPage() {
       </div>
 
       {activeTab === "qr" ? (
-        <div style={{ textAlign: "center", flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ textAlign: "center", flex: 1, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1 }}>
           <div style={{ background: "#fff", padding: 30, borderRadius: 30, boxShadow: "0 0 40px #1A0DFF66" }}>
             <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=LCS-APP:${vendor?.qr_code}`} alt="QR" />
           </div>
         </div>
       ) : (
-        <div style={{ padding: 20 }}>
+        <div style={{ padding: 20, zIndex: 1 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 15, marginBottom: 30 }}>
              <div style={statBox}><div className="fugaz" style={statVal}>{ventes.length}</div><div className="dm">Ventes</div></div>
              <div style={statBox}><div className="fugaz" style={statVal}>{ventes.reduce((s,v)=>s+Number(v.montant),0)}€</div><div className="dm">CA</div></div>
@@ -101,7 +103,7 @@ export default function VendeurPage() {
       {demande && (
         <div style={overlayStyle}>
           <div style={{...popupStyle, background: "#050514", border: "1px solid #1A0DFF", padding: 0, overflow: "hidden"}}>
-            <div style={{background: "#1A0DFF", padding: 20, textAlign: "center"}}><div className="dm">ACHETEUR</div><div className="fugaz" style={{fontSize: 24}}>{demande.acheteur.pseudo}</div></div>
+            <div style={{background: "#1A0DFF", padding: 20, textAlign: "center"}}><div className="dm" style={{fontSize: 12, marginBottom: 5}}>ACHETEUR</div><div className="fugaz" style={{fontSize: 24}}>{demande.acheteur.pseudo}</div></div>
             <div style={{padding: 20}}>
                <PanierForm scanId={demande.scanId} vendorId={vendor.id} acheteurId={demande.acheteur.id} onDone={()=>{setDemande(null); loadVendorData(vendor.email);}} />
             </div>
@@ -117,12 +119,12 @@ function PanierForm({ scanId, vendorId, acheteurId, onDone }) {
   return (
     <div style={{display: "flex", flexDirection: "column", gap: 10}}>
       <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10}}>
-        <input type="number" placeholder="Nb Cartes" value={c} onChange={e=>setC(e.target.value)} style={inputStyle} />
-        <input type="number" placeholder="€ Cartes" value={mc} onChange={e=>setMc(e.target.value)} style={inputStyle} />
+        <input className="dm" type="number" placeholder="Nb Cartes" value={c} onChange={e=>setC(e.target.value)} style={inputStyle} />
+        <input className="dm" type="number" placeholder="€ Cartes" value={mc} onChange={e=>setMc(e.target.value)} style={inputStyle} />
       </div>
       <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10}}>
-        <input type="number" placeholder="Nb Scellés" value={s} onChange={e=>setS(e.target.value)} style={inputStyle} />
-        <input type="number" placeholder="€ Scellés" value={ms} onChange={e=>setMs(e.target.value)} style={inputStyle} />
+        <input className="dm" type="number" placeholder="Nb Scellés" value={s} onChange={e=>setS(e.target.value)} style={inputStyle} />
+        <input className="dm" type="number" placeholder="€ Scellés" value={ms} onChange={e=>setMs(e.target.value)} style={inputStyle} />
       </div>
       <button onClick={async ()=>{
         await supabase.rpc("enregistrer_vente", { p_vendeur_id: vendorId, p_acheteur_id: acheteurId, p_nombre_cartes: parseInt(c)||0, p_nombre_scelles: parseInt(s)||0, p_montant_cartes: parseFloat(mc)||0, p_montant_scelles: parseFloat(ms)||0 });
@@ -133,4 +135,17 @@ function PanierForm({ scanId, vendorId, acheteurId, onDone }) {
   );
 }
 
-// Les variables de style (containerStyle, inputStyle, etc.) sont les mêmes que pour la page acheteur.
+// --- STYLES ---
+const containerStyle = { display: "flex", flexDirection: "column", minHeight: "100dvh", backgroundColor: "#050514", color: "#fff", fontFamily: "'DM Sans', sans-serif", padding: 30, maxWidth: 500, margin: "0 auto" };
+const inputStyle = { width: "100%", padding: "16px", borderRadius: 50, border: "none", background: "#fff", color: "#000", marginBottom: 15 };
+const btnPrimary = { padding: "18px", borderRadius: 50, border: "2px solid #fff", background: "#F06A2A", color: "#fff", cursor: "pointer", width: "100%", fontSize: 16 };
+const logoutBtn = { position: "absolute", top: 25, right: 20, background: "none", border: "none", color: "#666", fontSize: 10, fontWeight: "bold", cursor: "pointer", zIndex: 10 };
+const verticalText = { position: "fixed", bottom: 60, right: -40, transform: "rotate(-90deg)", color: "transparent", WebkitTextStroke: "1px #191457", fontFamily: "Fugaz One", fontSize: 70, zIndex: 0, pointerEvents: "none", opacity: 0.4 };
+const tabsCenter = { display: "flex", justifyContent: "center", gap: 20, marginBottom: 30, zIndex: 1 };
+const activeTabStyle = { background: "none", border: "none", color: "#fff", fontSize: 14, borderBottom: "3px solid #F06A2A", paddingBottom: 5, cursor: "pointer" };
+const inactiveTabStyle = { background: "none", border: "none", color: "#444", fontSize: 14, cursor: "pointer" };
+const statBox = { border: "1px solid rgba(255,255,255,0.1)", borderRadius: 15, padding: 20, textAlign: "center" };
+const statVal = { fontSize: 32, color: "#F06A2A" };
+const historyItem = { padding: 15, border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 };
+const overlayStyle = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 99 };
+const popupStyle = { background: "#fff", padding: 20, borderRadius: 24, width: "100%", maxWidth: 400 };
