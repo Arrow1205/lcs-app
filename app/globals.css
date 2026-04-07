@@ -4,21 +4,18 @@
 
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fugaz+One&display=swap');
 
-/* On force tes couleurs pour que le mode clair/sombre du téléphone n'ait aucun impact */
 body {
   margin: 0;
   padding: 0;
-  background-color: #050514;
+  background-color: #01011e; /* Nouveau fond global */
   color: #ffffff;
   font-family: 'DM Sans', sans-serif;
   overflow-x: hidden;
 }
 
-/* Classes pour tes polices */
 .fugaz { font-family: 'Fugaz One', sans-serif; text-transform: uppercase; font-style: italic; }
 .dm { font-family: 'DM Sans', sans-serif; }
 
-/* Animations fluides */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
 

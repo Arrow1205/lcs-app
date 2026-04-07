@@ -15,7 +15,7 @@ const PALIERS = [
 ];
 
 export default function AcheteurPage() {
-  const [step, setStep] = useState("loading"); // loading | auth | main | merci
+  const [step, setStep] = useState("loading");
   const [pseudo, setPseudo] = useState("");
   const [age, setAge] = useState("");
   const [interets, setInterets] = useState([]);
@@ -26,6 +26,15 @@ export default function AcheteurPage() {
   const [currentScanId, setCurrentScanId] = useState(null);
   const [lastPointsGained, setLastPointsGained] = useState(0);
   const html5QrRef = useRef(null);
+
+  const GlobalStyles = () => (
+    <style dangerouslySetInnerHTML={{__html: `
+      @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fugaz+One&display=swap');
+      .fugaz { font-family: 'Fugaz One', sans-serif; text-transform: uppercase; font-style: italic; }
+      .dm { font-family: 'DM Sans', sans-serif; }
+      body { background-color: #01011e; margin: 0; overflow-x: hidden; }
+    `}} />
+  );
 
   useEffect(() => {
     const saved = localStorage.getItem("lcs_pseudo");
@@ -41,6 +50,9 @@ export default function AcheteurPage() {
       const { data: v } = await supabase.from("ventes").select("*, vendeurs(numero_table, zone)").eq("acheteur_id", data.id).order("created_at", { ascending: false });
       setVentes(v || []);
       setStep("main");
+    } else {
+      localStorage.removeItem("lcs_pseudo");
+      setStep("auth");
     }
   };
 
@@ -48,7 +60,6 @@ export default function AcheteurPage() {
     const upperPseudo = pseudo.trim().toUpperCase();
     if (!upperPseudo) return alert("Pseudo requis");
     const { data: existing } = await supabase.from("acheteurs").select("*").eq("pseudo", upperPseudo).maybeSingle();
-    
     if (existing) { 
       loadUserData(upperPseudo); 
     } else {
@@ -107,10 +118,11 @@ export default function AcheteurPage() {
     return { current: palier.name, next: next ? `${next.name} DANS ${next.min - pts} PTS` : "NIVEAU MAX ATTEINT" };
   };
 
-  if (step === "loading") return <div style={containerStyle}>Chargement...</div>;
+  if (step === "loading") return <div style={containerStyle}><GlobalStyles/>Chargement...</div>;
 
   if (step === "merci") return (
     <div className="animate-fade-in" style={{...containerStyle, justifyContent: "center", alignItems: "center", textAlign: "center"}}>
+       <GlobalStyles/>
        <div style={verticalText}>VISITEUR</div>
        <h1 className="fugaz" style={{fontSize: 60, margin: 0}}>MERCI</h1>
        <div className="fugaz" style={{fontSize: 24, color: "#F06A2A"}}>+ {lastPointsGained} POINTS</div>
@@ -118,24 +130,31 @@ export default function AcheteurPage() {
   );
 
   if (step === "auth") return (
-    <div style={containerStyle}>
-      <h1 className="fugaz" style={{ textAlign: "center", fontSize: 26, marginBottom: 10, marginTop: 20 }}>INSCRIPTION VISITEUR</h1>
-      <p className="dm" style={{ textAlign: "center", fontSize: 13, color: "#ccc", marginBottom: 30 }}>
-        Crée ton profil pour cumuler des points à chaque achat et débloquer des récompenses !
-      </p>
-      <input className="dm" type="text" placeholder="Pseudo" value={pseudo} onChange={e => setPseudo(e.target.value)} style={inputStyle} />
-      <input className="dm" type="number" placeholder="Age" value={age} onChange={e => setAge(e.target.value)} style={inputStyle} />
-      <p className="dm" style={{ margin: "10px 0 10px 10px", fontSize: 14 }}>Que collectionnes-tu ?</p>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 30 }}>
-        {TAGS_DISPO.map(tag => (
-          <button key={tag} onClick={() => toggleTag(tag)} className="fugaz" style={{
-            padding: "8px 16px", borderRadius: 50, transition: "0.2s",
-            background: interets.includes(tag) ? "#F06A2A" : "rgba(255,255,255,0.1)", 
-            color: "#fff", border: "none", cursor: "pointer", fontSize: 12
-          }}>{tag}</button>
-        ))}
+    <div style={{...containerStyle, padding: "40px 20px", alignItems: "center"}}>
+      <GlobalStyles/>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", width: "100%", alignItems: "center" }}>
+        <h1 className="fugaz" style={{ textAlign: "center", fontSize: 26, marginBottom: 10 }}>INSCRIPTION VISITEUR</h1>
+        <p className="dm" style={{ textAlign: "center", fontSize: 13, color: "#ccc", marginBottom: 40 }}>
+          Crée ton profil pour cumuler des points à chaque achat et débloquer des récompenses !
+        </p>
+        
+        <input className="dm" type="text" placeholder="Pseudo" value={pseudo} onChange={e => setPseudo(e.target.value)} style={inputStyleCenter} />
+        <input className="dm" type="number" placeholder="Age" value={age} onChange={e => setAge(e.target.value)} style={inputStyleCenter} />
+        
+        <p className="dm" style={{ margin: "15px 0 15px", fontSize: 14, textAlign: "center" }}>Que collectionnes-tu ?</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 30, justifyContent: "center" }}>
+          {TAGS_DISPO.map(tag => (
+            <button key={tag} onClick={() => toggleTag(tag)} className="fugaz" style={{
+              padding: "8px 16px", borderRadius: 50, transition: "0.2s",
+              background: interets.includes(tag) ? "#F06A2A" : "rgba(255,255,255,0.1)", 
+              color: "#fff", border: "none", cursor: "pointer", fontSize: 12
+            }}>{tag}</button>
+          ))}
+        </div>
       </div>
-      <button onClick={handleAuth} className="fugaz" style={btnPrimary}>CONTINUER</button>
+      
+      {/* Bouton fixé en bas */}
+      <button onClick={handleAuth} className="fugaz" style={{...btnPrimary, marginTop: "auto"}}>CONTINUER</button>
     </div>
   );
 
@@ -144,6 +163,7 @@ export default function AcheteurPage() {
 
   return (
     <div style={{ ...containerStyle, paddingBottom: 120 }}>
+      <GlobalStyles/>
       <div style={verticalText}>VISITEUR</div>
       <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="dm" style={logoutBtn}>DECONNEXION</button>
 
@@ -164,7 +184,7 @@ export default function AcheteurPage() {
             <div className="dm" style={infoTooltip}>ⓘ 1€ Carte = 1pt / 2€ Scellé = 1pt</div>
             <div className="dm" style={{ fontSize: 12 }}>Level</div>
             <div className="fugaz" style={{ fontSize: 32, margin: "5px 0" }}>{statusInfo.current}</div>
-            <div className="dm" style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>PROCHAIN STATUT : {statusInfo.next}</div>
+            <div className="dm" style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", textTransform: "uppercase" }}>PROCHAIN STATUT : {statusInfo.next}</div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 15 }}>
             <div style={statBox}><div className="fugaz" style={statVal}>{user?.total_points}</div><div className="dm" style={{fontSize: 12}}>Points</div></div>
@@ -205,7 +225,7 @@ export default function AcheteurPage() {
         <div style={overlayStyle}>
           <div style={popupStyle}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 15 }}>
-              <h3 className="fugaz" style={{ margin: 0, color: "#fff" }}>Scanner Exposant</h3>
+              <h3 className="fugaz" style={{ margin: 0, color: "#000" }}>Scanner Exposant</h3>
               <button onClick={() => { if(html5QrRef.current) html5QrRef.current.stop(); setScanning(false); }} style={{ background: "none", border: "none", color: "#fff", fontSize: 20, cursor: "pointer" }}>✕</button>
             </div>
             <div id="qr-reader" style={{ width: "100%", borderRadius: 12, overflow: "hidden" }} />
@@ -232,8 +252,8 @@ export default function AcheteurPage() {
 }
 
 // --- STYLES ---
-const containerStyle = { display: "flex", flexDirection: "column", minHeight: "100dvh", padding: "30px 20px", maxWidth: 500, margin: "0 auto", position: "relative" };
-const inputStyle = { width: "100%", padding: "16px 20px", borderRadius: 50, border: "none", background: "#fff", color: "#000", marginBottom: 15, boxSizing: "border-box", fontSize: 14 };
+const containerStyle = { display: "flex", flexDirection: "column", minHeight: "100dvh", backgroundColor: "#01011e", color: "#fff", padding: "30px 20px", maxWidth: 500, margin: "0 auto", position: "relative", overflowX: "hidden" };
+const inputStyleCenter = { width: "100%", padding: "16px 20px", borderRadius: 50, border: "none", background: "#fff", color: "#000", marginBottom: 15, boxSizing: "border-box", fontSize: 14, textAlign: "center" };
 const btnPrimary = { padding: "18px", borderRadius: 50, border: "2px solid #fff", background: "#F06A2A", color: "#fff", cursor: "pointer", fontSize: 16, width: "100%" };
 const logoutBtn = { position: "absolute", top: 30, right: 20, background: "none", border: "none", color: "#888", fontSize: 11, fontWeight: "bold", cursor: "pointer", zIndex: 10 };
 const verticalText = { position: "absolute", bottom: 100, right: -40, transform: "rotate(-90deg)", color: "transparent", WebkitTextStroke: "1px #191457", fontSize: 80, zIndex: 0, pointerEvents: "none", opacity: 0.5 };
@@ -248,4 +268,4 @@ const infoTooltip = { position: "absolute", top: 15, right: 15, fontSize: 9, col
 const historyItem = { padding: 15, border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, display: "flex", justifyContent: "space-between", alignItems: "center", background: "transparent" };
 
 const overlayStyle = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 99 };
-const popupStyle = { background: "#050514", border: "1px solid #1A0DFF", padding: 24, borderRadius: 24, width: "100%", maxWidth: 400, color: "#fff" };
+const popupStyle = { background: "#01011e", border: "1px solid #1A0DFF", padding: 24, borderRadius: 24, width: "100%", maxWidth: 400, color: "#fff" };

@@ -12,6 +12,15 @@ export default function VendeurPage() {
   const [activeTab, setActiveTab] = useState("qr");
   const [demande, setDemande] = useState(null);
 
+  const GlobalStyles = () => (
+    <style dangerouslySetInnerHTML={{__html: `
+      @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fugaz+One&display=swap');
+      .fugaz { font-family: 'Fugaz One', sans-serif; text-transform: uppercase; font-style: italic; }
+      .dm { font-family: 'DM Sans', sans-serif; }
+      body { background-color: #01011e; margin: 0; overflow-x: hidden; }
+    `}} />
+  );
+
   useEffect(() => {
     const saved = localStorage.getItem("lcs_vendor");
     if (saved) { loadVendorData(JSON.parse(saved).email); } else { setStep("login"); }
@@ -26,6 +35,9 @@ export default function VendeurPage() {
       const { data: v } = await supabase.from("ventes").select("*, acheteurs(pseudo)").eq("vendeur_id", data.id).order("created_at", { ascending: false });
       setVentes(v || []);
       setStep("main");
+    } else {
+      localStorage.removeItem("lcs_vendor");
+      setStep("login");
     }
   };
 
@@ -39,17 +51,23 @@ export default function VendeurPage() {
     return () => { supabase.removeChannel(channel); };
   }, [vendor]);
 
-  if (step === "loading") return <div style={containerStyle}>Chargement...</div>;
+  if (step === "loading") return <div style={containerStyle}><GlobalStyles/>Chargement...</div>;
 
   if (step === "login") return (
-    <div style={containerStyle}>
-      <h1 className="fugaz" style={{ textAlign: "center", marginBottom: 30, marginTop: 20, fontSize: 26 }}>INSCRIPTION EXPOSANT</h1>
-      <input className="dm" type="text" placeholder="Pseudo / Nom" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} />
-      <select className="dm" value={zone} onChange={e => setZone(e.target.value)} style={inputStyle}>
-        {["BASKET", "SPORT US", "SOCCER", "TCG", "FOOTBALL", "BASEBALL", "NHL", "POKEMON", "COMICS", "NFL"].map(z => <option key={z} value={z}>{z}</option>)}
-      </select>
-      <input className="dm" type="number" placeholder="N° Table" value={table} onChange={e => setTable(e.target.value)} style={inputStyle} />
-      
+    <div style={{...containerStyle, padding: "40px 20px", alignItems: "center"}}>
+      <GlobalStyles/>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", width: "100%", alignItems: "center" }}>
+        <h1 className="fugaz" style={{ textAlign: "center", marginBottom: 40, fontSize: 26 }}>INSCRIPTION EXPOSANT</h1>
+        
+        <input className="dm" type="text" placeholder="Pseudo / Nom" value={email} onChange={e => setEmail(e.target.value)} style={inputStyleCenter} />
+        
+        <select className="dm" value={zone} onChange={e => setZone(e.target.value)} style={{...inputStyleCenter, textAlignLast: "center"}}>
+          {["BASKET", "SPORT US", "SOCCER", "TCG", "FOOTBALL", "BASEBALL", "NHL", "POKEMON", "COMICS", "NFL"].map(z => <option key={z} value={z}>{z}</option>)}
+        </select>
+        
+        <input className="dm" type="number" placeholder="N° Table" value={table} onChange={e => setTable(e.target.value)} style={inputStyleCenter} />
+      </div>
+
       <button onClick={async () => {
          const upper = email.trim().toUpperCase();
          if(!upper || !table) return alert("Nom et N° Table requis !");
@@ -60,16 +78,18 @@ export default function VendeurPage() {
            await supabase.from("vendeurs").insert({ email: upper, zone, numero_table: parseInt(table), qr_code: qr });
            loadVendorData(upper);
          }
-      }} className="fugaz" style={{...btnPrimary, marginTop: 20}}>OUVRIR MA TABLE</button>
+      }} className="fugaz" style={{...btnPrimary, marginTop: "auto"}}>OUVRIR MA TABLE</button>
     </div>
   );
 
   return (
-    <div style={containerStyle}>
+    <div style={{ ...containerStyle, paddingBottom: 100 }}>
+      <GlobalStyles/>
+      
       <div style={verticalText}>EXPOSANT</div>
       <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="dm" style={logoutBtn}>DECONNEXION</button>
 
-      <div style={{ padding: "20px", textAlign: "center", zIndex: 1, position: "relative" }}>
+      <div style={{ padding: "40px 20px", textAlign: "center", zIndex: 1, position: "relative" }}>
         <h1 className="fugaz" style={{ color: "#F06A2A", fontSize: 40, margin: 0 }}>{vendor?.email.split('@')[0]}</h1>
         <div className="fugaz" style={{ display: "inline-block", background: "rgba(255,255,255,0.1)", padding: "5px 15px", borderRadius: 20, fontSize: 10, marginTop: 10 }}>
           TABLE N°{vendor?.numero_table} — {vendor?.zone}
@@ -97,10 +117,7 @@ export default function VendeurPage() {
           {ventes.length === 0 ? <p className="dm" style={{color: "#888", fontSize: 14}}>Aucune vente enregistrée.</p> : (
             ventes.map(v => (
               <div key={v.id} style={historyItem}>
-                <div>
-                  <div className="dm" style={{fontWeight: "bold", fontSize: 12, color: "#1A0DFF"}}>{v.acheteurs?.pseudo}</div>
-                  <div className="dm" style={{fontSize: 10, color: "#ccc", marginTop: 4}}>{v.nombre_cartes} CARTES / {v.nombre_scelles||0} SCELLÉS</div>
-                </div>
+                <div><div className="dm" style={{fontWeight: "bold", fontSize: 12, color: "#1A0DFF"}}>{v.acheteurs?.pseudo}</div><div className="dm" style={{fontSize: 10, color: "#ccc", marginTop: 4}}>{v.nombre_cartes} CARTES / {v.nombre_scelles||0} SCELLÉS</div></div>
                 <div className="fugaz" style={{fontSize: 18}}>{v.montant}€</div>
               </div>
             ))
@@ -151,8 +168,8 @@ function PanierForm({ scanId, vendorId, acheteurId, onDone, onCancel }) {
 }
 
 // --- STYLES COMPLETS ---
-const containerStyle = { display: "flex", flexDirection: "column", minHeight: "100dvh", padding: "30px 20px", maxWidth: 500, margin: "0 auto", position: "relative", overflowX: "hidden" };
-const inputStyle = { width: "100%", padding: "16px 20px", borderRadius: 50, border: "none", background: "#fff", color: "#000", marginBottom: 15, boxSizing: "border-box", fontSize: 14 };
+const containerStyle = { display: "flex", flexDirection: "column", minHeight: "100dvh", backgroundColor: "#01011e", color: "#fff", padding: "30px 20px", maxWidth: 500, margin: "0 auto", position: "relative", overflowX: "hidden" };
+const inputStyleCenter = { width: "100%", padding: "16px 20px", borderRadius: 50, border: "none", background: "#fff", color: "#000", marginBottom: 15, boxSizing: "border-box", fontSize: 14, textAlign: "center" };
 const inputStylePanier = { width: "100%", padding: "14px", borderRadius: 50, border: "none", background: "#fff", color: "#000", boxSizing: "border-box", fontSize: 13, textAlign: "center" };
 const btnPrimary = { padding: "18px", borderRadius: 50, border: "2px solid #fff", background: "#F06A2A", color: "#fff", cursor: "pointer", width: "100%", fontSize: 16 };
 const logoutBtn = { position: "absolute", top: 30, right: 20, background: "none", border: "none", color: "#888", fontSize: 11, fontWeight: "bold", cursor: "pointer", zIndex: 10 };
@@ -167,4 +184,4 @@ const statVal = { fontSize: 36, color: "#F06A2A", marginBottom: 5 };
 const historyItem = { padding: 15, border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, background: "transparent" };
 
 const overlayStyle = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 99 };
-const popupStyle = { background: "#050514", border: "1px solid #1A0DFF", borderRadius: 24, width: "100%", maxWidth: 400, color: "#fff" };
+const popupStyle = { background: "#01011e", border: "1px solid #1A0DFF", borderRadius: 24, width: "100%", maxWidth: 400, color: "#fff" };
