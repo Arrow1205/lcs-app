@@ -21,7 +21,7 @@ export default function AdminPage() {
   const html5QrRef = useRef(null);
 
   const handleLogin = () => {
-    if (pwd === ADMIN_CODE) { setStep("dashboard"); loadData(); } 
+    if (typeof ADMIN_CODE === 'string' && ADMIN_CODE.length > 0 && pwd === ADMIN_CODE) { setStep("dashboard"); loadData(); } 
     else { alert("Code incorrect"); }
   };
 

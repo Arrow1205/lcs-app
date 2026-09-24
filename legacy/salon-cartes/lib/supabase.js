@@ -34,4 +34,5 @@ export function getNextTier(pts) {
 
 // Préfixe QR pour valider que c'est bien un QR de l'app
 export const QR_PREFIX = "SALONCARTES2026|";
-export const ADMIN_CODE = "NC5926!";
+// Ancien accès désactivé : utiliser Supabase Auth dans le CRM actuel.
+export const ADMIN_CODE = null;
